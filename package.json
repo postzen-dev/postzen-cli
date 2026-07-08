@@ -1,0 +1,32 @@
+{
+	"name": "@postzen/cli",
+	"version": "0.1.0",
+	"description": "Command-line client for the PostZen API — auto-generated from the OpenAPI spec. JSON output, zero dependencies.",
+	"license": "MIT",
+	"type": "module",
+	"bin": {
+		"postzen": "./dist/index.js"
+	},
+	"files": [
+		"dist"
+	],
+	"engines": {
+		"node": ">=20"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/postzen-dev/postzen-cli.git"
+	},
+	"homepage": "https://docs.postzen.dev/cli",
+	"scripts": {
+		"generate": "node scripts/generate-commands.mjs",
+		"build": "npm run generate && tsc",
+		"typecheck": "npm run generate && tsc --noEmit",
+		"test": "node scripts/smoke-test.mjs",
+		"prepublishOnly": "npm run build"
+	},
+	"devDependencies": {
+		"@types/node": "^22.10.2",
+		"typescript": "^5.9.3"
+	}
+}
