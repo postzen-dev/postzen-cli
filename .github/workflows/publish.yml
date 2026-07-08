@@ -27,6 +27,10 @@ jobs:
 
       - name: Publish to npm
         run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "NPM_TOKEN secret not set — skipping publish."
+            exit 0
+          fi
           LOCAL="$(node -p "require('./package.json').version")"
           PUBLISHED="$(npm view @postzen/cli version 2>/dev/null || echo 'none')"
           echo "local=$LOCAL published=$PUBLISHED"
