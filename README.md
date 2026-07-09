@@ -17,9 +17,7 @@
 
 ---
 
-Every command maps directly onto an API endpoint and prints a single line of JSON to stdout, with meaningful exit codes.
-
-This repo is auto-generated: when the [PostZen OpenAPI spec](https://docs.postzen.dev/api-reference) changes, CI regenerates the commands from `openapi.json` and publishes a new release — so the CLI always matches the current API surface. The same pipeline keeps the [Node](https://github.com/postzen-dev/postzen-node) and [Python](https://github.com/postzen-dev/postzen-python) SDKs and the [MCP server](https://docs.postzen.dev/mcp) in sync.
+Schedule posts, manage profiles, connect social accounts, and upload media across 8 platforms from the terminal.
 
 ## Install
 
@@ -29,69 +27,93 @@ npm install -g @postzen/cli
 
 Zero runtime dependencies; requires Node 20+.
 
-## Authenticate
+## Quick Start
 
-Create an API key on the [API Keys page](https://app.postzen.dev/api-keys), then:
+1. Save your API key ([create one here](https://app.postzen.dev/api-keys)):
 
 ```bash
-postzen auth:set --key pzn_live_...   # validates, then saves to ~/.postzen/config.json (0600)
-postzen auth:check                    # verify the resolved key
-postzen auth:status                   # show the masked key and where it came from
+postzen auth:set --key pzn_live_...
 ```
 
-`POSTZEN_API_KEY` overrides the saved key (useful in CI); `POSTZEN_API_URL` overrides the base URL.
-
-## Usage
-
-Commands are `group:action` tokens. Path parameters are positional; everything else is a `--flag` using the exact field names from the API.
+2. List your connected accounts:
 
 ```bash
-# Schedule a post
+postzen accounts:list
+```
+
+3. Schedule a post:
+
+```bash
 postzen posts:create \
   --content "We just shipped 🚀" \
   --scheduledFor "2026-08-01T09:00:00Z" \
-  --platforms '[{"platform":"x","accountId":"acc_123"}]' \
-  --tags launch,product
-
-# Pipe into jq
-postzen profiles:list | jq '.profiles[].name'
-
-# Explore
-postzen help                    # all commands
-postzen posts                   # commands in one group
-postzen posts:create --help     # flags, types, and enums for one command
+  --platforms '[{"platform":"x","accountId":"acc_123"}]'
 ```
 
-### Output and exit codes
+## Authentication
 
-| Result | Where | Exit code |
-| --- | --- | --- |
-| Success | compact JSON on stdout (`--pretty` to indent) | `0` |
-| API error (non-2xx) | `{"error":{"status":...}}` on stderr | `1` |
-| Usage error (bad flag, missing arg) | human-readable message on stderr | `2` |
+### API key
 
-Scalar array flags accept comma-separated values or repeated flags; structured values are passed as JSON strings.
-
-## PostZen developer tools
-
-| Tool | Where |
-| --- | --- |
-| API docs | [docs.postzen.dev](https://docs.postzen.dev) · [API reference](https://docs.postzen.dev/api-reference) |
-| Node SDK | [postzen-dev/postzen-node](https://github.com/postzen-dev/postzen-node) · `npm install @postzen/node` |
-| Python SDK | [postzen-dev/postzen-python](https://github.com/postzen-dev/postzen-python) · `pip install postzen-sdk` |
-| MCP server | [docs.postzen.dev/mcp](https://docs.postzen.dev/mcp) — for Claude, Cursor, and other MCP clients |
-| CLI docs | [docs.postzen.dev/cli](https://docs.postzen.dev/cli) |
-
-## Development
+Create an API key on the [API Keys page](https://app.postzen.dev/api-keys) and save it:
 
 ```bash
-npm ci
-npm run generate   # regenerate src/generated/commands.ts from openapi.json
-npm run build      # generate + tsc -> dist/
-npm test           # smoke tests against a local mock server
+postzen auth:set --key pzn_live_...
 ```
 
-`openapi.json` and `src/generated/commands.ts` are synced automatically from the postzen monorepo — don't edit them by hand here.
+The key is validated against the API, then stored in `~/.postzen/config.json` with `0600` permissions. In CI or scripts, skip the config file and set `POSTZEN_API_KEY` instead.
+
+### Verify
+
+```bash
+postzen auth:check    # verifies the resolved key against the API
+postzen auth:status   # shows the masked key and where it came from
+```
+
+## Commands
+
+Commands are `group:action` tokens. Path parameters are positional; everything else is a `--flag` using the exact field names from the API. Run `postzen <command> --help` for the flags, types, and enums of any command.
+
+| Command | Description |
+| --- | --- |
+| **Auth** | |
+| `auth:set` | Validate an API key and save it locally |
+| `auth:check` | Verify the resolved API key against the API |
+| `auth:status` | Show the masked key in use and where it came from |
+| **Profiles** | |
+| `profiles:list` | List profiles |
+| `profiles:create` | Create a profile |
+| `profiles:get <profileId>` | Get a profile |
+| `profiles:update <profileId>` | Update a profile |
+| `profiles:delete <profileId>` | Delete a profile |
+| **Accounts** | |
+| `accounts:list` | List connected social accounts |
+| `accounts:disconnect <accountId>` | Disconnect an account |
+| **Connect** | |
+| `connect:create-url <platform>` | Create an OAuth connect URL |
+| `connect:complete <platform>` | Complete an OAuth connection |
+| **Media** | |
+| `media:create-presign` | Create a presigned media upload URL |
+| **Posts** | |
+| `posts:create` | Create a draft, scheduled, or immediate post |
+
+All commands print a single compact line of JSON to stdout (add `--pretty` to indent). API errors print `{"error":{...}}` to stderr and exit `1`; usage errors exit `2`.
+
+## Configuration
+
+Your API key is stored in `~/.postzen/config.json`. Environment variables always take precedence:
+
+| Variable | Description |
+| --- | --- |
+| `POSTZEN_API_KEY` | API key; overrides the saved key |
+| `POSTZEN_API_URL` | Base URL override (defaults to `https://api.postzen.dev`) |
+
+## AI Agent Integration
+
+The CLI is built for agents: every command is a single predictable invocation that returns machine-readable JSON and a meaningful exit code, so agents can compose it with `jq`, cron, or any tool-calling loop. For chat-based agents, PostZen also ships a hosted [MCP server](https://docs.postzen.dev/mcp) that exposes the same API as native tools for Claude, Cursor, and other MCP clients.
+
+## Supported Platforms
+
+X (Twitter), Instagram, TikTok, LinkedIn, Facebook, YouTube, Threads, Pinterest
 
 ## License
 
