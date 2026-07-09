@@ -3,12 +3,7 @@ import { generatedCommands, apiVersion } from "./generated/commands.js";
 import type { GeneratedCommand } from "./types.js";
 import { typeLabel } from "./schema.js";
 import { version } from "./version.js";
-
-const AUTH_COMMANDS = [
-	{ name: "auth:set", summary: "Save an API key to ~/.postzen/config.json (validated first)." },
-	{ name: "auth:check", summary: "Verify the resolved API key against the API." },
-	{ name: "auth:status", summary: "Show the masked key in use and where it came from." },
-];
+import { customCommands, SUPPRESSED_GENERATED } from "./commands/index.js";
 
 const GLOBAL_FLAGS = [
 	["--pretty", "Indent JSON output (2 spaces). Default is a single compact line."],
@@ -20,10 +15,25 @@ function pad(s: string, width: number): string {
 	return s.length >= width ? s : s + " ".repeat(width - s.length);
 }
 
+// Group order follows the generated commands, with any custom-only group
+// (e.g. `media` once its generated command is suppressed) kept in place.
 function groupsInOrder(): string[] {
 	const seen: string[] = [];
 	for (const c of generatedCommands) if (!seen.includes(c.group)) seen.push(c.group);
+	for (const c of customCommands) if (c.group !== "auth" && !seen.includes(c.group)) seen.push(c.group);
 	return seen;
+}
+
+// Commands listed under a group heading: visible generated ones plus custom
+// ones (auth commands render in their own block, not as a group).
+function groupCommands(group: string): { name: string; summary: string }[] {
+	const gen = generatedCommands
+		.filter((c) => c.group === group && !SUPPRESSED_GENERATED.has(c.name))
+		.map((c) => ({ name: c.name, summary: c.summary }));
+	const custom = customCommands
+		.filter((c) => c.group === group && c.group !== "auth")
+		.map((c) => ({ name: c.name, summary: c.summary }));
+	return [...gen, ...custom];
 }
 
 export function overviewHelp(): string {
@@ -39,18 +49,20 @@ export function overviewHelp(): string {
 	lines.push("Pass --pretty for indented output.");
 	lines.push("");
 	lines.push("Authentication:");
-	const authWidth = Math.max(...AUTH_COMMANDS.map((c) => c.name.length));
-	for (const c of AUTH_COMMANDS) lines.push(`  ${pad(c.name, authWidth)}  ${c.summary}`);
+	const authCommands = customCommands.filter((c) => c.group === "auth");
+	const authWidth = Math.max(...authCommands.map((c) => c.name.length));
+	for (const c of authCommands) lines.push(`  ${pad(c.name, authWidth)}  ${c.summary}`);
 	lines.push("");
 	lines.push("  Set POSTZEN_API_KEY to override the saved key; POSTZEN_API_URL to override the base URL.");
 	lines.push("");
 
-	const nameWidth = Math.max(...generatedCommands.map((c) => c.name.length));
+	const listed = groupsInOrder().flatMap(groupCommands);
+	const nameWidth = Math.max(...listed.map((c) => c.name.length));
 	for (const group of groupsInOrder()) {
+		const cmds = groupCommands(group);
+		if (!cmds.length) continue;
 		lines.push(`${group}:`);
-		for (const c of generatedCommands.filter((cmd) => cmd.group === group)) {
-			lines.push(`  ${pad(c.name, nameWidth)}  ${c.summary}`);
-		}
+		for (const c of cmds) lines.push(`  ${pad(c.name, nameWidth)}  ${c.summary}`);
 		lines.push("");
 	}
 
@@ -61,7 +73,7 @@ export function overviewHelp(): string {
 }
 
 export function groupHelp(group: string): string {
-	const cmds = generatedCommands.filter((c) => c.group === group);
+	const cmds = groupCommands(group);
 	const lines: string[] = [`${group} commands:`, ""];
 	const nameWidth = Math.max(...cmds.map((c) => c.name.length));
 	for (const c of cmds) lines.push(`  ${pad(c.name, nameWidth)}  ${c.summary}`);

@@ -90,7 +90,7 @@ Commands are `group:action` tokens. Path parameters are positional; everything e
 | `connect:create-url <platform>` | Create an OAuth connect URL |
 | `connect:complete <platform>` | Complete an OAuth connection |
 | **Media** | |
-| `media:create-presign` | Create a presigned media upload URL |
+| `media:upload <file>` | Upload a media file and get back its public URL |
 | **Posts** | |
 | `posts:create` | Create a draft, scheduled, or immediate post |
 

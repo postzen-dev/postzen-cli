@@ -40,7 +40,7 @@ postzen auth:check    # {"ok":true,"profiles":N} on success
 
 1. Find the profile (workspace) to act in: `postzen profiles:list`
 2. Find target accounts and their ids: `postzen accounts:list --profileId <id> --status connected`
-3. (If posting media) upload it first — see Media Upload Workflow below.
+3. (If posting media) upload it first with `postzen media:upload <file>` — see Media Upload Workflow below.
 4. Create the post: `postzen posts:create --content ... --platforms '[...]'` with exactly one of `--publishNow`, `--scheduledFor`, or `--isDraft`.
 5. Read the JSON response for the created post's id and per-platform status.
 
@@ -97,10 +97,11 @@ postzen connect:complete <platform>                       # finish flows that re
 ### Media
 
 ```bash
-postzen media:create-presign --filename photo.jpg --contentType image/jpeg
+postzen media:upload ./photo.jpg
+postzen media:upload ./video.mp4 --profileId <id>
 ```
 
-Returns `uploadUrl` (PUT the file bytes there) and `publicUrl` (use in a post's `mediaItems`).
+Uploads the file (presign + PUT in one command) and returns its `publicUrl` to use in a post's `mediaItems`. The content type is inferred from the file extension; pass `--contentType` to override.
 
 ### Posts
 
@@ -122,21 +123,18 @@ Key flags (see `--help` for all):
 ## Media Upload Workflow
 
 ```bash
-# 1. Get a presigned upload slot
-PRESIGN=$(postzen media:create-presign --filename photo.jpg --contentType image/jpeg)
-UPLOAD_URL=$(echo "$PRESIGN" | jq -r .uploadUrl)
-PUBLIC_URL=$(echo "$PRESIGN" | jq -r .publicUrl)
+# 1. Upload the file — presigns, PUTs the bytes, and returns the public URL
+PUBLIC_URL=$(postzen media:upload ./photo.jpg | jq -r .publicUrl)
 
-# 2. Upload the raw bytes
-curl -s -X PUT --data-binary @photo.jpg -H "content-type: image/jpeg" "$UPLOAD_URL"
-
-# 3. Reference the public URL in the post
+# 2. Reference the public URL in the post
 postzen posts:create \
   --content "Look at this" \
   --mediaItems "[{\"url\":\"$PUBLIC_URL\"}]" \
   --platforms '[{"platform":"instagram","accountId":"acc_123"}]' \
   --publishNow
 ```
+
+`media:upload` infers the content type from the file extension (pass `--contentType` to override) and handles files up to 100 MB.
 
 External media URLs also work in `mediaItems` — PostZen downloads and re-hosts them. They must resolve to an image or video of at most 100 MB (PDF is not supported in posts).
 

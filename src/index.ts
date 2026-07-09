@@ -5,11 +5,14 @@ import { generatedCommands } from "./generated/commands.js";
 import { UsageError } from "./errors.js";
 import { overviewHelp, groupHelp, commandHelp, versionText } from "./help.js";
 import { runCommand } from "./run-command.js";
-import { runAuth } from "./commands/auth.js";
+import { customCommands, customCommandByName, SUPPRESSED_GENERATED } from "./commands/index.js";
 
-const AUTH_COMMANDS = new Set(["auth:set", "auth:check", "auth:status"]);
-const commandByName = new Map(generatedCommands.map((c) => [c.name, c]));
-const groups = new Set(generatedCommands.map((c) => c.group));
+const commandByName = new Map(
+	generatedCommands.filter((c) => !SUPPRESSED_GENERATED.has(c.name)).map((c) => [c.name, c]),
+);
+const groups = new Set<string>();
+for (const c of generatedCommands) if (!SUPPRESSED_GENERATED.has(c.name)) groups.add(c.group);
+for (const c of customCommands) if (c.group !== "auth") groups.add(c.group);
 
 async function main(argv: string[]): Promise<number> {
 	// `--version` / `version` short-circuit regardless of position.
@@ -31,7 +34,9 @@ async function main(argv: string[]): Promise<number> {
 		return 0;
 	}
 
-	if (AUTH_COMMANDS.has(token)) return runAuth(token, rest);
+	// Custom commands win over generated ones.
+	const custom = customCommandByName.get(token);
+	if (custom) return custom.run(rest);
 
 	const command = commandByName.get(token);
 	if (command) return runCommand(command, rest);
@@ -46,6 +51,11 @@ async function main(argv: string[]): Promise<number> {
 }
 
 function printTopic(topic: string): number {
+	const custom = customCommandByName.get(topic);
+	if (custom) {
+		process.stdout.write(`${custom.help}\n`);
+		return 0;
+	}
 	const command = commandByName.get(topic);
 	if (command) {
 		process.stdout.write(`${commandHelp(command)}\n`);

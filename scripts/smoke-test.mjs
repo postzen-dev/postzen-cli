@@ -3,8 +3,8 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { existsSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -22,13 +22,24 @@ const server = createServer((req, res) => {
 	const chunks = [];
 	req.on("data", (c) => chunks.push(c));
 	req.on("end", () => {
-		const rawBody = Buffer.concat(chunks).toString("utf8");
+		const bodyBuffer = Buffer.concat(chunks);
+		const rawBody = bodyBuffer.toString("utf8");
+		// Presigned uploads carry raw (possibly binary) bytes, not JSON.
+		let body;
+		if (rawBody) {
+			try {
+				body = JSON.parse(rawBody);
+			} catch {
+				body = undefined;
+			}
+		}
 		requests.push({
 			method: req.method,
 			path: url.pathname,
 			query: Object.fromEntries(url.searchParams.entries()),
 			headers: req.headers,
-			body: rawBody ? JSON.parse(rawBody) : undefined,
+			body,
+			bodyBuffer,
 		});
 
 		const send = (status, obj) => {
@@ -49,6 +60,17 @@ const server = createServer((req, res) => {
 		}
 		if (req.method === "POST" && url.pathname === "/v1/posts") {
 			return send(201, { post: { _id: "post1" }, message: "Post published successfully" });
+		}
+		if (req.method === "POST" && url.pathname === "/v1/media/presign") {
+			return send(200, {
+				uploadUrl: `${baseUrl}/upload/key123`,
+				publicUrl: "https://media.postzen.dev/key123.png",
+				key: "key123",
+				type: "image",
+			});
+		}
+		if (req.method === "PUT" && url.pathname === "/upload/key123") {
+			return send(200, {});
 		}
 		return send(404, { error: "not found" });
 	});
@@ -72,6 +94,12 @@ function runCli(args, extraEnv = {}) {
 
 let baseUrl;
 const pass = (label) => console.log(`ok - ${label}`);
+
+// Temp media files for the media:upload tests, kept inside the repo cache.
+const tmpDir = join(here, "..", "node_modules", ".cache");
+mkdirSync(tmpDir, { recursive: true });
+const pngFile = join(tmpDir, "postzen-smoke.png");
+const xyzFile = join(tmpDir, "postzen-smoke.xyz");
 
 await new Promise((resolve) => server.listen(0, resolve));
 baseUrl = `http://127.0.0.1:${server.address().port}`;
@@ -148,7 +176,7 @@ try {
 		pass("--pretty indents output");
 	}
 
-	// (h) help renders all 11 generated commands.
+	// (h) help lists the visible commands, hides the suppressed one.
 	{
 		const r = await runCli(["help"]);
 		assert.equal(r.status, 0);
@@ -162,14 +190,65 @@ try {
 			"accounts:disconnect",
 			"connect:create-url",
 			"connect:complete",
-			"media:create-presign",
+			"media:upload",
 			"posts:create",
 		];
 		for (const name of expected) assert.ok(r.stdout.includes(name), `help missing ${name}`);
-		pass("help lists all 11 generated commands");
+		assert.ok(!r.stdout.includes("media:create-presign"), "help must not list the suppressed media:create-presign");
+		pass("help lists custom + generated commands and hides media:create-presign");
+	}
+
+	// (i) media:upload — presign, PUT the bytes, print the public URL.
+	{
+		requests.length = 0;
+		const bytes = Buffer.alloc(512);
+		for (let i = 0; i < bytes.length; i++) bytes[i] = i % 256;
+		writeFileSync(pngFile, bytes);
+
+		const r = await runCli(["media:upload", pngFile]);
+		assert.equal(r.status, 0, `media:upload exit: ${r.stderr}`);
+
+		const presignReq = requests.find((x) => x.path === "/v1/media/presign");
+		assert.ok(presignReq, "presign request should have been made");
+		assert.equal(presignReq.method, "POST");
+		assert.equal(presignReq.headers.authorization, "Bearer testkey");
+		assert.equal(presignReq.body.filename, basename(pngFile));
+		assert.equal(presignReq.body.contentType, "image/png");
+		assert.equal(presignReq.body.size, bytes.length);
+
+		const putReq = requests.find((x) => x.path === "/upload/key123");
+		assert.ok(putReq, "PUT to the presigned URL should have been made");
+		assert.equal(putReq.method, "PUT");
+		assert.equal(putReq.headers["content-type"], "image/png");
+		assert.equal(putReq.headers.authorization, undefined, "PUT must not carry an Authorization header");
+		assert.ok(putReq.bodyBuffer.equals(bytes), "PUT body bytes must equal the file exactly");
+
+		const out = JSON.parse(r.stdout);
+		assert.equal(out.publicUrl, "https://media.postzen.dev/key123.png");
+		assert.equal(out.key, "key123");
+		pass("media:upload presigns, uploads the bytes, and prints the public URL");
+	}
+
+	// (j) unknown extension without --contentType -> exit 2 mentioning --contentType.
+	{
+		writeFileSync(xyzFile, Buffer.from("hello world"));
+		const r = await runCli(["media:upload", xyzFile]);
+		assert.equal(r.status, 2, `unknown extension should exit 2: ${r.stdout}${r.stderr}`);
+		assert.match(r.stderr, /--contentType/);
+		pass("media:upload with an unknown extension exits 2 and mentions --contentType");
+	}
+
+	// (k) media:create-presign is suppressed -> unknown command, exit 2.
+	{
+		const r = await runCli(["media:create-presign", "--filename", "x.png", "--contentType", "image/png"]);
+		assert.equal(r.status, 2, "suppressed command should exit 2");
+		assert.match(r.stderr, /Unknown command/);
+		pass("media:create-presign is suppressed and reports an unknown command");
 	}
 
 	console.log("\nAll smoke tests passed.");
 } finally {
 	server.close();
+	rmSync(pngFile, { force: true });
+	rmSync(xyzFile, { force: true });
 }

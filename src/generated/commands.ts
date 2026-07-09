@@ -61,7 +61,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"facebook",
 						"youtube",
 						"threads",
-						"pinterest"
+						"pinterest",
+						"bluesky"
 					]
 				},
 				"description": "Filter accounts by platform. `twitter` is accepted as an alias for `x`."
@@ -127,7 +128,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"facebook",
 						"youtube",
 						"threads",
-						"pinterest"
+						"pinterest",
+						"bluesky"
 					]
 				}
 			}
@@ -176,7 +178,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "connect",
 		"action": "create-url",
 		"summary": "Create an OAuth connect URL",
-		"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.",
+		"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.",
 		"method": "GET",
 		"pathTemplate": "/v1/connect/{platform}",
 		"positionals": [
@@ -194,7 +196,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"facebook",
 						"youtube",
 						"threads",
-						"pinterest"
+						"pinterest",
+						"bluesky"
 					]
 				}
 			}
@@ -390,7 +393,8 @@ export const generatedCommands: GeneratedCommand[] = [
 									"facebook",
 									"youtube",
 									"threads",
-									"pinterest"
+									"pinterest",
+									"bluesky"
 								]
 							},
 							"accountId": {
@@ -603,6 +607,31 @@ export const generatedCommands: GeneratedCommand[] = [
 											},
 											"altText": {
 												"type": "string"
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"altTexts": {
+												"type": "array",
+												"items": {
+													"type": "string",
+													"maxLength": 2000
+												},
+												"description": "Alt text for each image, matched to the media by order. Each entry is limited to 2000 characters."
+											},
+											"languages": {
+												"type": "array",
+												"items": {
+													"type": "string"
+												},
+												"maxItems": 3,
+												"description": "Up to 3 BCP-47 language codes (e.g. `en`, `pt-BR`) declaring the languages of the post text."
+											},
+											"disableLinkCard": {
+												"type": "boolean",
+												"description": "When true, PostZen skips generating an external link preview card for the first URL in the post."
 											}
 										}
 									}

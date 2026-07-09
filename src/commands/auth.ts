@@ -6,7 +6,7 @@ import { readConfig, writeConfig, resolveKey, resolveBaseUrl, maskKey } from "..
 import { printJson, emitApiError, emitNetworkError } from "../output.js";
 import { INVALID_KEY_MESSAGE, MISSING_KEY_MESSAGE } from "../messages.js";
 
-const AUTH_HELP: Record<string, string> = {
+export const AUTH_HELP: Record<string, string> = {
 	"auth:set": "postzen auth:set --key pzn_live_...\n\nValidate an API key and save it to ~/.postzen/config.json (mode 0600).",
 	"auth:check": "postzen auth:check\n\nVerify the resolved API key against the API. Prints the number of accessible profiles.",
 	"auth:status": "postzen auth:status\n\nShow the masked API key currently in use and where it was resolved from.",
