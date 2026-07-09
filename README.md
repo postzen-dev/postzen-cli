@@ -5,8 +5,7 @@
 <h1 align="center">PostZen CLI</h1>
 
 <p align="center">
-  Drive the <a href="https://postzen.dev">PostZen</a> social publishing API from your terminal.<br />
-  JSON in, JSON out — built for shell pipelines, cron jobs, CI, and AI agents.
+Schedule posts, manage profiles, connect social accounts, and upload media across 8 platforms from the terminal.<br />
 </p>
 
 <p align="center">
@@ -17,7 +16,6 @@
 
 ---
 
-Schedule posts, manage profiles, connect social accounts, and upload media across 8 platforms from the terminal.
 
 ## Install
 
@@ -109,7 +107,7 @@ Your API key is stored in `~/.postzen/config.json`. Environment variables always
 
 ## AI Agent Integration
 
-The CLI is built for agents: every command is a single predictable invocation that returns machine-readable JSON and a meaningful exit code, so agents can compose it with `jq`, cron, or any tool-calling loop. For chat-based agents, PostZen also ships a hosted [MCP server](https://docs.postzen.dev/mcp) that exposes the same API as native tools for Claude, Cursor, and other MCP clients.
+The CLI is built for agents: every command is a single predictable invocation that returns machine-readable JSON and a meaningful exit code, so agents can compose it with `jq`, cron, or any tool-calling loop. This repo (and the npm package) includes a [SKILL.md](SKILL.md) file with workflows, recipes, and error-handling guidance for AI agent discovery. For chat-based agents, PostZen also ships a hosted [MCP server](https://docs.postzen.dev/mcp) that exposes the same API as native tools for Claude, Cursor, and other MCP clients.
 
 ## Supported Platforms
 

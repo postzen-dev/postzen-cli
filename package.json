@@ -1,6 +1,6 @@
 {
 	"name": "@postzen/cli",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Command-line client for the PostZen API — auto-generated from the OpenAPI spec. JSON output, zero dependencies.",
 	"license": "MIT",
 	"type": "module",
@@ -8,7 +8,8 @@
 		"postzen": "./dist/index.js"
 	},
 	"files": [
-		"dist"
+		"dist",
+		"SKILL.md"
 	],
 	"engines": {
 		"node": ">=20"
