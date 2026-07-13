@@ -1,21 +1,17 @@
 <p align="center">
-  <img src=".github/assets/postzen-cli-banner.png" alt="PostZen CLI" width="720" />
+  <img src=".github/assets/postzen-icon.png" alt="PostZen" width="96" />
 </p>
 
 <h1 align="center">PostZen CLI</h1>
 
 <p align="center">
-Schedule posts, manage profiles, connect social accounts, and upload media across 8 platforms from the terminal.<br />
-</p>
-
-<p align="center">
   <a href="https://www.npmjs.com/package/@postzen/cli"><img src="https://img.shields.io/npm/v/%40postzen%2Fcli?color=2563EB&label=npm" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/@postzen/cli"><img src="https://img.shields.io/node/v/%40postzen%2Fcli?color=0F172A" alt="node version" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/npm/l/%40postzen%2Fcli?color=A7F3D0" alt="license" /></a>
 </p>
 
----
+<p align="center"><strong>One CLI to post everywhere. 8 platforms, zero headaches.</strong></p>
 
+The official command-line interface for the [PostZen API](https://docs.postzen.dev) — schedule posts, manage profiles, connect social accounts, and upload media across X/Twitter, Instagram, TikTok, LinkedIn, Facebook, YouTube, Threads, and Pinterest, straight from your terminal.
 
 ## Install
 
