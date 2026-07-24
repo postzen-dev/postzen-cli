@@ -106,6 +106,114 @@ export const generatedCommands: GeneratedCommand[] = [
 		"bodyKeys": []
 	},
 	{
+		"name": "api-keys:create-api-key",
+		"group": "api-keys",
+		"action": "create-api-key",
+		"summary": "Create an API key",
+		"description": "Creates an API key and returns the full key value exactly once. This endpoint requires a read-write API key with access to all profiles; profile-scoped keys receive a `403`. Store the returned `key` securely — it cannot be retrieved again after this response.",
+		"method": "POST",
+		"pathTemplate": "/v1/api-keys",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "name",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 100,
+					"description": "Human-readable label for the key."
+				},
+				"description": "Human-readable label for the key."
+			},
+			{
+				"name": "scope",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"full",
+						"profiles"
+					],
+					"default": "full",
+					"description": "`full` grants access to all profiles; `profiles` restricts the key to `profileIds`."
+				},
+				"description": "`full` grants access to all profiles; `profiles` restricts the key to `profileIds`."
+			},
+			{
+				"name": "profileIds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "PostZen profile ids. Required when `scope` is `profiles`, and forbidden when `scope` is `full`."
+				},
+				"description": "PostZen profile ids. Required when `scope` is `profiles`, and forbidden when `scope` is `full`."
+			},
+			{
+				"name": "permission",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"read-write",
+						"read"
+					],
+					"default": "read-write",
+					"description": "`read` keys may only call `GET` endpoints."
+				},
+				"description": "`read` keys may only call `GET` endpoints."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"name",
+			"scope",
+			"profileIds",
+			"permission"
+		]
+	},
+	{
+		"name": "api-keys:delete-api-key",
+		"group": "api-keys",
+		"action": "delete-api-key",
+		"summary": "Delete an API key",
+		"description": "Permanently revokes and deletes an API key. Requires a read-write key with full profile access. A key may delete itself.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/api-keys/{keyId}",
+		"positionals": [
+			{
+				"name": "keyId",
+				"description": "PostZen API key id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "api-keys:list-api-keys",
+		"group": "api-keys",
+		"action": "list-api-keys",
+		"summary": "List API keys",
+		"description": "Returns the API keys for the authenticated account. The full key value is never returned; only a masked `keyPreview` is shown. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/api-keys",
+		"positionals": [],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
 		"name": "connect:complete",
 		"group": "connect",
 		"action": "complete",
@@ -410,6 +518,7 @@ export const generatedCommands: GeneratedCommand[] = [
 								"oneOf": [
 									{
 										"type": "object",
+										"description": "Instagram target settings. `postType` selects the format: `feed` and `story` take exactly one media item, `reel` takes exactly one video, and `carousel` takes 2–10 media items (images and videos may be mixed). Captions are limited to 2,200 characters.",
 										"properties": {
 											"postType": {
 												"type": "string",
@@ -419,16 +528,19 @@ export const generatedCommands: GeneratedCommand[] = [
 													"reel",
 													"carousel"
 												],
-												"default": "feed"
+												"default": "feed",
+												"description": "Instagram post format. `feed` (default) and `story` publish a single media item; `reel` publishes a single video; `carousel` publishes 2–10 ordered media items and may mix images and videos. Sending multiple media items with `feed` returns a validation error directing you to `carousel`."
 											},
 											"collaborators": {
 												"type": "array",
+												"description": "Up to three Instagram usernames to invite as collaborators. Supported on feed, reel, and carousel posts.",
 												"items": {
 													"type": "string"
 												}
 											},
 											"userTags": {
 												"type": "array",
+												"description": "Photo tags with relative `x`/`y` coordinates from 0 to 1. Feed posts only — user tags are not supported on carousels, reels, or stories.",
 												"items": {
 													"type": "object",
 													"required": [
@@ -450,10 +562,12 @@ export const generatedCommands: GeneratedCommand[] = [
 												}
 											},
 											"firstComment": {
-												"type": "string"
+												"type": "string",
+												"description": "Posts a first comment after publishing. Supported on feed, reel, and carousel posts. Maximum 2,200 characters."
 											},
 											"shareToFeed": {
-												"type": "boolean"
+												"type": "boolean",
+												"description": "Reels only. Defaults to `true`. Set to `false` to keep the reel off the profile feed."
 											}
 										}
 									},
@@ -535,6 +649,11 @@ export const generatedCommands: GeneratedCommand[] = [
 													"PUBLIC",
 													"CONNECTIONS"
 												]
+											},
+											"videoTitle": {
+												"type": "string",
+												"maxLength": 200,
+												"description": "Optional title for video posts, shown on the LinkedIn video player. Ignored for non-video posts."
 											}
 										}
 									},
@@ -708,6 +827,135 @@ export const generatedCommands: GeneratedCommand[] = [
 			"timezone",
 			"tags"
 		]
+	},
+	{
+		"name": "posts:list",
+		"group": "posts",
+		"action": "list",
+		"summary": "List posts",
+		"description": "Returns posts created for the profiles available to the API key, newest first. Read-only and read-write API keys are accepted. Published posts include a `platformPostUrl` for each published platform target. Results are capped to the 1000 most recent matching posts.",
+		"method": "GET",
+		"pathTemplate": "/v1/posts",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter posts by profile id."
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter posts to those targeting a specific connected account."
+			},
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"twitter",
+						"x",
+						"instagram",
+						"tiktok",
+						"linkedin",
+						"facebook",
+						"youtube",
+						"threads",
+						"pinterest",
+						"bluesky"
+					]
+				},
+				"description": "Filter posts to those with a target on this platform. `twitter` is accepted as an alias for `x`."
+			},
+			{
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"draft",
+						"scheduled",
+						"queued",
+						"publishing",
+						"published",
+						"partially_failed",
+						"failed",
+						"canceled"
+					]
+				},
+				"description": "Filter posts by status."
+			},
+			{
+				"name": "dateFrom",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"description": "Only include posts scheduled on or after this ISO 8601 timestamp. Posts without a scheduled time are excluded when a date filter is supplied."
+			},
+			{
+				"name": "dateTo",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"description": "Only include posts scheduled on or before this ISO 8601 timestamp. Posts without a scheduled time are excluded when a date filter is supplied."
+			},
+			{
+				"name": "sortBy",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"createdAt",
+						"scheduledFor"
+					],
+					"default": "createdAt"
+				},
+				"description": "Sort order. `createdAt` sorts by creation time (newest first). `scheduledFor` sorts by scheduled time (newest first) and excludes posts without a scheduled time."
+			},
+			{
+				"name": "page",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 1
+				},
+				"description": "1-based page number. Defaults to 1."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 20
+				},
+				"description": "Page size. Defaults to 20."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
 	},
 	{
 		"name": "profiles:create",
