@@ -710,6 +710,9 @@ export const generatedCommands: GeneratedCommand[] = [
 									},
 									{
 										"type": "object",
+										"required": [
+											"boardId"
+										],
 										"properties": {
 											"boardId": {
 												"type": "string",
