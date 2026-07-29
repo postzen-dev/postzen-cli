@@ -1,6 +1,6 @@
 {
 	"name": "@postzen/cli",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "Command-line client for the PostZen API — auto-generated from the OpenAPI spec. JSON output, zero dependencies.",
 	"license": "MIT",
 	"type": "module",

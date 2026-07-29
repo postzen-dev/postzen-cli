@@ -62,7 +62,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"youtube",
 						"threads",
 						"pinterest",
-						"bluesky"
+						"bluesky",
+						"telegram"
 					]
 				},
 				"description": "Filter accounts by platform. `twitter` is accepted as an alias for `x`."
@@ -104,6 +105,572 @@ export const generatedCommands: GeneratedCommand[] = [
 		],
 		"bodyMode": null,
 		"bodyKeys": []
+	},
+	{
+		"name": "analytics:get",
+		"group": "analytics",
+		"action": "get",
+		"summary": "Get post analytics",
+		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics.",
+		"method": "GET",
+		"pathTemplate": "/v1/analytics",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "postId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen post id or platform post id. When supplied, the response is a single analytics object."
+			},
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"enum": [
+								"x",
+								"instagram",
+								"tiktok",
+								"linkedin",
+								"facebook",
+								"youtube",
+								"threads",
+								"pinterest",
+								"bluesky",
+								"telegram"
+							]
+						},
+						{
+							"type": "string",
+							"const": "all"
+						}
+					],
+					"default": "all"
+				},
+				"description": "Platform slug, or `all` for every platform."
+			},
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"default": "all"
+				},
+				"description": "Filter by PostZen profile id."
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by connected social account id."
+			},
+			{
+				"name": "source",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"all",
+						"postzen",
+						"external"
+					],
+					"default": "all"
+				},
+				"description": "Filter by posts published through PostZen or imported from a platform."
+			},
+			{
+				"name": "fromDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range start. Accepts `YYYY-MM-DD` or an ISO 8601 datetime. Defaults to 90 days before `toDate`."
+			},
+			{
+				"name": "toDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range end. Accepts `YYYY-MM-DD` or an ISO 8601 datetime. Defaults to the current time."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 50
+				},
+				"description": "Page size."
+			},
+			{
+				"name": "page",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 1
+				},
+				"description": "1-based page number."
+			},
+			{
+				"name": "sortBy",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"date",
+						"engagement",
+						"impressions",
+						"reach",
+						"likes",
+						"comments",
+						"shares",
+						"saves",
+						"clicks",
+						"views"
+					],
+					"default": "date"
+				},
+				"description": "Field used to order list results."
+			},
+			{
+				"name": "order",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"asc",
+						"desc"
+					],
+					"default": "desc"
+				},
+				"description": "Sort direction."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "analytics:get-best-time-to-post",
+		"group": "analytics",
+		"action": "get-best-time-to-post",
+		"summary": "Get the best times to post",
+		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns historical engagement slots grouped by UTC day of week and hour, ordered by average engagement descending.",
+		"method": "GET",
+		"pathTemplate": "/v1/analytics/best-time",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"x",
+						"instagram",
+						"tiktok",
+						"linkedin",
+						"facebook",
+						"youtube",
+						"threads",
+						"pinterest",
+						"bluesky",
+						"telegram"
+					]
+				},
+				"description": "Filter by platform."
+			},
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by PostZen profile id."
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by connected social account id."
+			},
+			{
+				"name": "source",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"all",
+						"postzen",
+						"external"
+					],
+					"default": "all"
+				},
+				"description": "Filter by PostZen-published or externally imported posts."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "analytics:get-daily-metrics",
+		"group": "analytics",
+		"action": "get-daily-metrics",
+		"summary": "Get daily analytics metrics",
+		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns daily aggregate metrics and a per-platform breakdown. Publish attribution assigns lifetime metrics to the post's publish date; received attribution assigns metric deltas to the day they were observed.",
+		"method": "GET",
+		"pathTemplate": "/v1/analytics/daily-metrics",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"x",
+						"instagram",
+						"tiktok",
+						"linkedin",
+						"facebook",
+						"youtube",
+						"threads",
+						"pinterest",
+						"bluesky",
+						"telegram"
+					]
+				},
+				"description": "Filter by platform."
+			},
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by PostZen profile id."
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by connected social account id."
+			},
+			{
+				"name": "fromDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range start. Defaults to 180 days before `toDate`."
+			},
+			{
+				"name": "toDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range end. Defaults to the current time."
+			},
+			{
+				"name": "source",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"all",
+						"postzen",
+						"external"
+					],
+					"default": "all"
+				},
+				"description": "Filter by PostZen-published or externally imported posts."
+			},
+			{
+				"name": "attribution",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"publish",
+						"received"
+					],
+					"default": "publish"
+				},
+				"description": "Controls whether lifetime metrics are assigned to publish dates or daily deltas to receipt dates."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "analytics:get-follower-stats",
+		"group": "analytics",
+		"action": "get-follower-stats",
+		"summary": "Get follower statistics",
+		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns follower history and growth for connected accounts at daily, weekly, or monthly granularity.",
+		"method": "GET",
+		"pathTemplate": "/v1/accounts/follower-stats",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "accountIds",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Comma-separated connected account ids. Omit to include every accessible account."
+			},
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by PostZen profile id."
+			},
+			{
+				"name": "fromDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range start. Defaults to 30 days before `toDate`."
+			},
+			{
+				"name": "toDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range end. Defaults to the current time."
+			},
+			{
+				"name": "granularity",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"daily",
+						"weekly",
+						"monthly"
+					],
+					"default": "daily"
+				},
+				"description": "Follower history bucket size."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "analytics:get-post-timeline",
+		"group": "analytics",
+		"action": "get-post-timeline",
+		"summary": "Get a post analytics timeline",
+		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns one daily row per platform for a PostZen post, imported external post, or platform post id.",
+		"method": "GET",
+		"pathTemplate": "/v1/analytics/post-timeline",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "postId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen post id, external post id, analytics row id, or platform post id."
+			},
+			{
+				"name": "fromDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range start. Defaults to 90 days before `toDate`."
+			},
+			{
+				"name": "toDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range end. Defaults to the current time."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "analytics:sync-external-posts",
+		"group": "analytics",
+		"action": "sync-external-posts",
+		"summary": "Synchronize external posts",
+		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nFetches an account's latest posts published directly on its platform. Supplying `url` or `postId` searches for a specific post. Requests made within the per-account debounce window return cached results with `synced.skipped` set to true.",
+		"method": "POST",
+		"pathTemplate": "/v1/posts/sync-external",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			},
+			{
+				"name": "url",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "uri",
+					"description": "Optional platform post URL to locate."
+				},
+				"description": "Optional platform post URL to locate."
+			},
+			{
+				"name": "postId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Optional platform post id to locate."
+				},
+				"description": "Optional platform post id to locate."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"url",
+			"postId"
+		]
 	},
 	{
 		"name": "api-keys:create-api-key",
@@ -237,7 +804,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"youtube",
 						"threads",
 						"pinterest",
-						"bluesky"
+						"bluesky",
+						"telegram"
 					]
 				}
 			}
@@ -286,7 +854,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "connect",
 		"action": "create-url",
 		"summary": "Create an OAuth connect URL",
-		"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.",
+		"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.\n\nFor `telegram`, the returned `authUrl` is a PostZen-hosted page that issues a short-lived access code (there is no OAuth grant and no Telegram authorization screen); the connection completes when the user adds @PostZenScheduleBot as an administrator of a channel or group and sends that code to the bot.",
 		"method": "GET",
 		"pathTemplate": "/v1/connect/{platform}",
 		"positionals": [
@@ -305,7 +873,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"youtube",
 						"threads",
 						"pinterest",
-						"bluesky"
+						"bluesky",
+						"telegram"
 					]
 				}
 			}
@@ -502,7 +1071,8 @@ export const generatedCommands: GeneratedCommand[] = [
 									"youtube",
 									"threads",
 									"pinterest",
-									"bluesky"
+									"bluesky",
+									"telegram"
 								]
 							},
 							"accountId": {
@@ -756,6 +1326,32 @@ export const generatedCommands: GeneratedCommand[] = [
 												"description": "When true, PostZen skips generating an external link preview card for the first URL in the post."
 											}
 										}
+									},
+									{
+										"type": "object",
+										"description": "Telegram target settings. Text-only posts allow 4,096 characters; attaching any media caps the text at 1,024 characters as a caption. A post carries 1-10 media items and may mix photos and videos in one album, but a GIF must be posted on its own. Telegram reports no post analytics.",
+										"properties": {
+											"parseMode": {
+												"type": "string",
+												"enum": [
+													"html",
+													"markdownv2"
+												],
+												"description": "Formatting mode for the message or caption. Omit to send plain text, which is the default. `html` is recommended: it only requires escaping `<`, `>`, and `&`, whereas `markdownv2` requires escaping every one of `_ * [ ] ( ) ~ ` > # + - = | { } . !` and rejects the whole message otherwise."
+											},
+											"disableNotification": {
+												"type": "boolean",
+												"description": "When true, members receive the post silently, with no sound or vibration."
+											},
+											"disableLinkPreview": {
+												"type": "boolean",
+												"description": "When true, suppresses the link preview card for URLs in the text. Applies to text-only posts; a post with media has no link preview."
+											},
+											"protectContent": {
+												"type": "boolean",
+												"description": "When true, Telegram blocks forwarding and saving of the post."
+											}
+										}
 									}
 								]
 							}
@@ -875,7 +1471,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"youtube",
 						"threads",
 						"pinterest",
-						"bluesky"
+						"bluesky",
+						"telegram"
 					]
 				},
 				"description": "Filter posts to those with a target on this platform. `twitter` is accepted as an alias for `x`."
