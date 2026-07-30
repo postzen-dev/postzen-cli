@@ -1212,18 +1212,53 @@ export const generatedCommands: GeneratedCommand[] = [
 									},
 									{
 										"type": "object",
+										"description": "LinkedIn target settings. A LinkedIn post carries exactly one media kind: no media (text only), 1–20 images, one MP4 video, or one document (PDF/DOC/DOCX/PPT/PPTX). Commentary is limited to 3,000 characters. Every key below is also accepted in `snake_case` (for example `first_comment` and `organization_urn`).",
 										"properties": {
 											"visibility": {
 												"type": "string",
 												"enum": [
 													"PUBLIC",
 													"CONNECTIONS"
-												]
+												],
+												"default": "PUBLIC",
+												"description": "Who can see the post. `CONNECTIONS` is only valid for a member (personal profile) post — combining it with `organizationUrn` is a validation error, because a company page has no connections."
 											},
 											"videoTitle": {
 												"type": "string",
 												"maxLength": 200,
 												"description": "Optional title for video posts, shown on the LinkedIn video player. Ignored for non-video posts."
+											},
+											"documentTitle": {
+												"type": "string",
+												"maxLength": 200,
+												"description": "Title for a document (PDF carousel) post. LinkedIn requires a title on document posts; when this is omitted PostZen falls back to the uploaded file's name. Ignored for non-document posts."
+											},
+											"organizationUrn": {
+												"type": "string",
+												"pattern": "^(urn:li:organization:[0-9]+|[0-9]+)$",
+												"description": "Publish as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes — reconnect the account if it was connected before company-page posting was enabled. Also accepted as `organizationId` / `organization_id`."
+											},
+											"firstComment": {
+												"type": "string",
+												"maxLength": 1250,
+												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it."
+											},
+											"disableLinkPreview": {
+												"type": "boolean",
+												"description": "LinkedIn's Posts API never scrapes URLs, so a bare link renders as plain text. When this is `false` or omitted and the text contains a URL, PostZen attaches a link card for the first URL; because no scraped metadata is available, the card is titled with the URL's hostname (for example `example.com`). Set to `true` to keep the post as plain text with no card. Also accepted as `disableLinkCard`."
+											},
+											"reshareUrl": {
+												"type": "string",
+												"description": "LinkedIn post to quote-reshare. Accepts a public post permalink or a `urn:li:activity:` / `urn:li:share:` / `urn:li:ugcPost:` URN. Mutually exclusive with uploaded media."
+											},
+											"geoRestrictionCountries": {
+												"type": "array",
+												"items": {
+													"type": "string",
+													"pattern": "^[A-Z]{2}$"
+												},
+												"maxItems": 25,
+												"description": "Restrict who sees the post to these countries, as uppercase ISO 3166-1 alpha-2 codes (for example `[\"US\", \"CA\"]`). Up to 25 countries, and organization posts only — supplying this without `organizationUrn` is a validation error."
 											}
 										}
 									},
@@ -1552,6 +1587,110 @@ export const generatedCommands: GeneratedCommand[] = [
 					"default": 20
 				},
 				"description": "Page size. Defaults to 20."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "posts:list-comments",
+		"group": "posts",
+		"action": "list-comments",
+		"summary": "List comments on a LinkedIn post",
+		"description": "Returns the comments LinkedIn holds for a post published through PostZen. LinkedIn only, and organization (company page) posts only. The post's LinkedIn connection must hold `r_organization_social_feed`, which LinkedIn ships with its Community Management API product — reconnect the account if it was connected before company-page posting was enabled. A personal (member) post always returns `403 personalPostUnsupported`: reading a member's own comments and reactions needs `r_member_social_feed`, which LinkedIn grants to select developers only. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/posts/{postId}/comments",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "PostZen post id. The LinkedIn post URN is not accepted here.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the lookup to one LinkedIn target when the post was published to several LinkedIn accounts. PostZen account id."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Opaque pagination cursor. Pass the `nextCursor` from the previous response to fetch the next page."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 25
+				},
+				"description": "Page size."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "posts:list-reactions",
+		"group": "posts",
+		"action": "list-reactions",
+		"summary": "List reactions on a LinkedIn post",
+		"description": "Returns the individual reactions LinkedIn holds for a post published through PostZen, plus a per-type count of the returned page. LinkedIn only, and organization (company page) posts only. The post's LinkedIn connection must hold `r_organization_social_feed`, which LinkedIn ships with its Community Management API product — reconnect the account if it was connected before company-page posting was enabled. A personal (member) post always returns `403 personalPostUnsupported`: reading a member's own comments and reactions needs `r_member_social_feed`, which LinkedIn grants to select developers only. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/posts/{postId}/reactions",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "PostZen post id. The LinkedIn post URN is not accepted here.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the lookup to one LinkedIn target when the post was published to several LinkedIn accounts. PostZen account id."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Opaque pagination cursor. Pass the `nextCursor` from the previous response to fetch the next page."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 25
+				},
+				"description": "Page size."
 			}
 		],
 		"bodyMode": null,
