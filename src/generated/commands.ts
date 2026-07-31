@@ -7,6 +7,66 @@ export const apiVersion = "1.0.0";
 
 export const generatedCommands: GeneratedCommand[] = [
 	{
+		"name": "accounts:create-pinterest-board",
+		"group": "accounts",
+		"action": "create-pinterest-board",
+		"summary": "Create Pinterest board",
+		"description": "Creates a board for the connected Pinterest account. This endpoint requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/accounts/{accountId}/pinterest-boards",
+		"positionals": [
+			{
+				"name": "accountId",
+				"description": "PostZen id of a connected Pinterest account.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "name",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": ""
+			},
+			{
+				"name": "description",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			},
+			{
+				"name": "privacy",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"PUBLIC",
+						"PROTECTED",
+						"SECRET"
+					],
+					"default": "PUBLIC"
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"name",
+			"description",
+			"privacy"
+		]
+	},
+	{
 		"name": "accounts:disconnect",
 		"group": "accounts",
 		"action": "disconnect",
@@ -18,6 +78,27 @@ export const generatedCommands: GeneratedCommand[] = [
 			{
 				"name": "accountId",
 				"description": "PostZen account id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "accounts:get-pinterest-boards",
+		"group": "accounts",
+		"action": "get-pinterest-boards",
+		"summary": "List Pinterest boards",
+		"description": "Lists boards owned by a connected Pinterest account. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/accounts/{accountId}/pinterest-boards",
+		"positionals": [
+			{
+				"name": "accountId",
+				"description": "PostZen id of a connected Pinterest account.",
 				"schema": {
 					"type": "string"
 				}
@@ -105,6 +186,50 @@ export const generatedCommands: GeneratedCommand[] = [
 		],
 		"bodyMode": null,
 		"bodyKeys": []
+	},
+	{
+		"name": "accounts:update-pinterest-boards",
+		"group": "accounts",
+		"action": "update-pinterest-boards",
+		"summary": "Set default Pinterest board",
+		"description": "Verifies a Pinterest board and stores it as the account default used when a pin target omits `settings.boardId`. This endpoint requires a read-write API key.",
+		"method": "PUT",
+		"pathTemplate": "/v1/accounts/{accountId}/pinterest-boards",
+		"positionals": [
+			{
+				"name": "accountId",
+				"description": "PostZen id of a connected Pinterest account.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "defaultBoardId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": ""
+			},
+			{
+				"name": "defaultBoardName",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"defaultBoardId",
+			"defaultBoardName"
+		]
 	},
 	{
 		"name": "analytics:get",
@@ -902,6 +1027,87 @@ export const generatedCommands: GeneratedCommand[] = [
 		],
 		"bodyMode": null,
 		"bodyKeys": []
+	},
+	{
+		"name": "connect:list-pinterest-boards-for-selection",
+		"group": "connect",
+		"action": "list-pinterest-boards-for-selection",
+		"summary": "List Pinterest boards for the connect flow",
+		"description": "Lists boards after Pinterest OAuth completes so the client can show a board picker. The state handle remains valid for board selection for 30 minutes from connect-flow creation. This endpoint requires a read-write API key.",
+		"method": "GET",
+		"pathTemplate": "/v1/connect/pinterest/select-board",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "state",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "State token returned by `GET /v1/connect/pinterest`."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "connect:select-pinterest-board",
+		"group": "connect",
+		"action": "select-pinterest-board",
+		"summary": "Select Pinterest board",
+		"description": "Verifies and stores the default board for the Pinterest account created by the connect session. This endpoint requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/connect/pinterest/select-board",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "state",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": ""
+			},
+			{
+				"name": "boardId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": ""
+			},
+			{
+				"name": "boardName",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			},
+			{
+				"name": "redirectUrl",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "uri"
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"state",
+			"boardId",
+			"boardName",
+			"redirectUrl"
+		]
 	},
 	{
 		"name": "media:create-presign",
