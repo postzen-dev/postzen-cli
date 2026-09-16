@@ -910,7 +910,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "create-comment-automation",
 		"summary": "Create a comment automation",
-		"description": "Requires read_write. Limited to 60 creates per hour per user. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 60 creates per hour per user. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "POST",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1054,14 +1054,14 @@ export const generatedCommands: GeneratedCommand[] = [
 			{
 				"name": "dmMessage",
 				"in": "body",
-				"required": true,
+				"required": false,
 				"schema": {
 					"type": "string",
 					"minLength": 1,
 					"maxLength": 1000,
-					"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+					"description": "Required unless template is set. Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Ignored when a template is sent."
 				},
-				"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+				"description": "Required unless template is set. Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Ignored when a template is sent."
 			},
 			{
 				"name": "dmMessageVariations",
@@ -1114,9 +1114,105 @@ export const generatedCommands: GeneratedCommand[] = [
 						}
 					},
 					"maxItems": 3,
-					"default": []
+					"default": [],
+					"description": "Mutually exclusive with template."
 				},
-				"description": ""
+				"description": "Mutually exclusive with template."
+			},
+			{
+				"name": "template",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "object",
+					"required": [
+						"type",
+						"elements"
+					],
+					"description": "Meta generic template: an image card sent instead of dmMessage and buttons. If Meta rejects it for a send, PostZen resends the card's title, subtitle, image URL, and button links as plain text and marks the log buttonsDropped.",
+					"properties": {
+						"type": {
+							"type": "string",
+							"enum": [
+								"generic"
+							]
+						},
+						"imageAspectRatio": {
+							"type": "string",
+							"enum": [
+								"horizontal",
+								"square"
+							],
+							"default": "horizontal"
+						},
+						"elements": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"required": [
+									"title",
+									"imageUrl"
+								],
+								"properties": {
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 80,
+										"description": "Card title. Trimmed."
+									},
+									"subtitle": {
+										"type": "string",
+										"maxLength": 80,
+										"description": "Optional line under the title."
+									},
+									"imageUrl": {
+										"type": "string",
+										"format": "uri",
+										"pattern": "^https://",
+										"description": "Public HTTPS image URL that Meta fetches. `POST /v1/media/presign` returns one that qualifies."
+									},
+									"buttons": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"required": [
+												"type",
+												"title",
+												"url"
+											],
+											"properties": {
+												"type": {
+													"type": "string",
+													"enum": [
+														"url"
+													]
+												},
+												"title": {
+													"type": "string",
+													"minLength": 1,
+													"maxLength": 20
+												},
+												"url": {
+													"type": "string",
+													"format": "uri",
+													"pattern": "^https?://",
+													"description": "Public HTTP(S) URL; private hosts and embedded credentials are rejected."
+												}
+											}
+										},
+										"maxItems": 3,
+										"default": [],
+										"description": "Up to three link buttons under the card."
+									}
+								}
+							},
+							"minItems": 1,
+							"maxItems": 10,
+							"description": "One card per element. Instagram renders several as a swipeable carousel."
+						}
+					}
+				},
+				"description": "Meta generic template: an image card sent instead of dmMessage and buttons. If Meta rejects it for a send, PostZen resends the card's title, subtitle, image URL, and button links as plain text and marks the log buttonsDropped."
 			},
 			{
 				"name": "commentReply",
@@ -1212,6 +1308,7 @@ export const generatedCommands: GeneratedCommand[] = [
 			"dmMessage",
 			"dmMessageVariations",
 			"buttons",
+			"template",
 			"commentReply",
 			"commentReplyVariations",
 			"dmDelaySeconds",
@@ -1225,7 +1322,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "delete-comment-automation",
 		"summary": "Delete a comment automation",
-		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "DELETE",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1246,7 +1343,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "get-comment-automation",
 		"summary": "Get a comment automation",
-		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1267,7 +1364,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automation-logs",
 		"summary": "List comment automation logs",
-		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations/{automationId}/logs",
 		"positionals": [
@@ -1327,7 +1424,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automations",
 		"summary": "List comment automations",
-		"description": "Returns visible automations newest first, maximum 100. Reads use the plan per-minute limit. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Returns visible automations newest first, maximum 100. Reads use the plan per-minute limit. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1359,7 +1456,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "update-comment-automation",
 		"summary": "Update a comment automation",
-		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "PATCH",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1561,9 +1658,113 @@ export const generatedCommands: GeneratedCommand[] = [
 						}
 					},
 					"maxItems": 3,
-					"default": []
+					"default": [],
+					"description": "Mutually exclusive with template. Pass [] to clear."
 				},
-				"description": ""
+				"description": "Mutually exclusive with template. Pass [] to clear."
+			},
+			{
+				"name": "template",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "object",
+							"required": [
+								"type",
+								"elements"
+							],
+							"description": "Meta generic template: an image card sent instead of dmMessage and buttons. If Meta rejects it for a send, PostZen resends the card's title, subtitle, image URL, and button links as plain text and marks the log buttonsDropped.",
+							"properties": {
+								"type": {
+									"type": "string",
+									"enum": [
+										"generic"
+									]
+								},
+								"imageAspectRatio": {
+									"type": "string",
+									"enum": [
+										"horizontal",
+										"square"
+									],
+									"default": "horizontal"
+								},
+								"elements": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"required": [
+											"title",
+											"imageUrl"
+										],
+										"properties": {
+											"title": {
+												"type": "string",
+												"minLength": 1,
+												"maxLength": 80,
+												"description": "Card title. Trimmed."
+											},
+											"subtitle": {
+												"type": "string",
+												"maxLength": 80,
+												"description": "Optional line under the title."
+											},
+											"imageUrl": {
+												"type": "string",
+												"format": "uri",
+												"pattern": "^https://",
+												"description": "Public HTTPS image URL that Meta fetches. `POST /v1/media/presign` returns one that qualifies."
+											},
+											"buttons": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"required": [
+														"type",
+														"title",
+														"url"
+													],
+													"properties": {
+														"type": {
+															"type": "string",
+															"enum": [
+																"url"
+															]
+														},
+														"title": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 20
+														},
+														"url": {
+															"type": "string",
+															"format": "uri",
+															"pattern": "^https?://",
+															"description": "Public HTTP(S) URL; private hosts and embedded credentials are rejected."
+														}
+													}
+												},
+												"maxItems": 3,
+												"default": [],
+												"description": "Up to three link buttons under the card."
+											}
+										}
+									},
+									"minItems": 1,
+									"maxItems": 10,
+									"description": "One card per element. Instagram renders several as a swipeable carousel."
+								}
+							}
+						},
+						{
+							"type": "null"
+						}
+					],
+					"description": "Send null to remove the card and go back to dmMessage."
+				},
+				"description": "Send null to remove the card and go back to dmMessage."
 			},
 			{
 				"name": "commentReply",
@@ -1658,6 +1859,7 @@ export const generatedCommands: GeneratedCommand[] = [
 			"dmMessage",
 			"dmMessageVariations",
 			"buttons",
+			"template",
 			"commentReply",
 			"commentReplyVariations",
 			"dmDelaySeconds",
