@@ -906,6 +906,767 @@ export const generatedCommands: GeneratedCommand[] = [
 		"bodyKeys": []
 	},
 	{
+		"name": "comment-automations:create-comment-automation",
+		"group": "comment-automations",
+		"action": "create-comment-automation",
+		"summary": "Create a comment automation",
+		"description": "Requires read_write. Limited to 60 creates per hour per user. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"method": "POST",
+		"pathTemplate": "/v1/comment-automations",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "Connected Instagram account id. Immutable after creation."
+				},
+				"description": "Connected Instagram account id. Immutable after creation."
+			},
+			{
+				"name": "profileId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "If supplied, must equal the account profile."
+				},
+				"description": "If supplied, must equal the account profile."
+			},
+			{
+				"name": "name",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 120,
+					"description": "Trimmed name."
+				},
+				"description": "Trimmed name."
+			},
+			{
+				"name": "trigger",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"comment",
+						"story_reply"
+					],
+					"default": "comment"
+				},
+				"description": ""
+			},
+			{
+				"name": "platformPostId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+				},
+				"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+			},
+			{
+				"name": "postId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+				},
+				"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+			},
+			{
+				"name": "postTitle",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"maxLength": 200
+				},
+				"description": ""
+			},
+			{
+				"name": "keywords",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
+					},
+					"maxItems": 50,
+					"default": [],
+					"description": "Trimmed and deduplicated case-insensitively. Empty matches every comment."
+				},
+				"description": "Trimmed and deduplicated case-insensitively. Empty matches every comment."
+			},
+			{
+				"name": "matchMode",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"exact",
+						"contains",
+						"word"
+					],
+					"default": "contains"
+				},
+				"description": ""
+			},
+			{
+				"name": "excludeKeywords",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
+					},
+					"maxItems": 50,
+					"default": [],
+					"description": "Vetoes matching using the same matchMode; trimmed and deduplicated case-insensitively."
+				},
+				"description": "Vetoes matching using the same matchMode; trimmed and deduplicated case-insensitively."
+			},
+			{
+				"name": "typoTolerance",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": false,
+					"description": "word mode only: Damerau-Levenshtein per word, 1 edit for 4–7 characters, 2 edits for 8+, none for fewer than 4."
+				},
+				"description": "word mode only: Damerau-Levenshtein per word, 1 edit for 4–7 characters, 2 edits for 8+, none for fewer than 4."
+			},
+			{
+				"name": "dmMessage",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 1000,
+					"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+				},
+				"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+			},
+			{
+				"name": "dmMessageVariations",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1000
+					},
+					"maxItems": 5,
+					"default": [],
+					"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+				},
+				"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+			},
+			{
+				"name": "buttons",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"required": [
+							"type",
+							"title",
+							"url"
+						],
+						"properties": {
+							"type": {
+								"type": "string",
+								"enum": [
+									"url"
+								]
+							},
+							"title": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 20
+							},
+							"url": {
+								"type": "string",
+								"format": "uri",
+								"pattern": "^https?://",
+								"description": "Public HTTP(S) URL; private hosts and embedded credentials are rejected."
+							}
+						}
+					},
+					"maxItems": 3,
+					"default": []
+				},
+				"description": ""
+			},
+			{
+				"name": "commentReply",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 1000,
+					"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+				},
+				"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+			},
+			{
+				"name": "commentReplyVariations",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1000
+					},
+					"maxItems": 5,
+					"default": [],
+					"description": "Uniform random choice independent of the DM."
+				},
+				"description": "Uniform random choice independent of the DM."
+			},
+			{
+				"name": "dmDelaySeconds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 86400,
+					"default": 0
+				},
+				"description": ""
+			},
+			{
+				"name": "commentReplyDelaySeconds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 86400,
+					"default": 0,
+					"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+				},
+				"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+			},
+			{
+				"name": "isActive",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": true
+				},
+				"description": ""
+			},
+			{
+				"name": "linkTracking",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"enum": [
+						false
+					],
+					"default": false
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"profileId",
+			"name",
+			"trigger",
+			"platformPostId",
+			"postId",
+			"postTitle",
+			"keywords",
+			"matchMode",
+			"excludeKeywords",
+			"typoTolerance",
+			"dmMessage",
+			"dmMessageVariations",
+			"buttons",
+			"commentReply",
+			"commentReplyVariations",
+			"dmDelaySeconds",
+			"commentReplyDelaySeconds",
+			"isActive",
+			"linkTracking"
+		]
+	},
+	{
+		"name": "comment-automations:delete-comment-automation",
+		"group": "comment-automations",
+		"action": "delete-comment-automation",
+		"summary": "Delete a comment automation",
+		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/comment-automations/{automationId}",
+		"positionals": [
+			{
+				"name": "automationId",
+				"description": "",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "comment-automations:get-comment-automation",
+		"group": "comment-automations",
+		"action": "get-comment-automation",
+		"summary": "Get a comment automation",
+		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"method": "GET",
+		"pathTemplate": "/v1/comment-automations/{automationId}",
+		"positionals": [
+			{
+				"name": "automationId",
+				"description": "",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "comment-automations:list-comment-automation-logs",
+		"group": "comment-automations",
+		"action": "list-comment-automation-logs",
+		"summary": "List comment automation logs",
+		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"method": "GET",
+		"pathTemplate": "/v1/comment-automations/{automationId}/logs",
+		"positionals": [
+			{
+				"name": "automationId",
+				"description": "",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"pending",
+						"sent",
+						"failed",
+						"skipped"
+					]
+				},
+				"description": ""
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 200,
+					"default": 50
+				},
+				"description": ""
+			},
+			{
+				"name": "skip",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "comment-automations:list-comment-automations",
+		"group": "comment-automations",
+		"action": "list-comment-automations",
+		"summary": "List comment automations",
+		"description": "Returns visible automations newest first, maximum 100. Reads use the plan per-minute limit. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"method": "GET",
+		"pathTemplate": "/v1/comment-automations",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "comment-automations:update-comment-automation",
+		"group": "comment-automations",
+		"action": "update-comment-automation",
+		"summary": "Update a comment automation",
+		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"method": "PATCH",
+		"pathTemplate": "/v1/comment-automations/{automationId}",
+		"positionals": [
+			{
+				"name": "automationId",
+				"description": "",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "If supplied, must equal the account profile."
+				},
+				"description": "If supplied, must equal the account profile."
+			},
+			{
+				"name": "name",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 120,
+					"description": "Trimmed name."
+				},
+				"description": "Trimmed name."
+			},
+			{
+				"name": "trigger",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"comment",
+						"story_reply"
+					],
+					"default": "comment"
+				},
+				"description": ""
+			},
+			{
+				"name": "platformPostId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+				},
+				"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+			},
+			{
+				"name": "postId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+				},
+				"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+			},
+			{
+				"name": "postTitle",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"maxLength": 200
+				},
+				"description": ""
+			},
+			{
+				"name": "keywords",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
+					},
+					"maxItems": 50,
+					"default": [],
+					"description": "Trimmed and deduplicated case-insensitively. Empty matches every comment."
+				},
+				"description": "Trimmed and deduplicated case-insensitively. Empty matches every comment."
+			},
+			{
+				"name": "matchMode",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"exact",
+						"contains",
+						"word"
+					],
+					"default": "contains"
+				},
+				"description": ""
+			},
+			{
+				"name": "excludeKeywords",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 100
+					},
+					"maxItems": 50,
+					"default": [],
+					"description": "Vetoes matching using the same matchMode; trimmed and deduplicated case-insensitively."
+				},
+				"description": "Vetoes matching using the same matchMode; trimmed and deduplicated case-insensitively."
+			},
+			{
+				"name": "typoTolerance",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": false,
+					"description": "word mode only: Damerau-Levenshtein per word, 1 edit for 4–7 characters, 2 edits for 8+, none for fewer than 4."
+				},
+				"description": "word mode only: Damerau-Levenshtein per word, 1 edit for 4–7 characters, 2 edits for 8+, none for fewer than 4."
+			},
+			{
+				"name": "dmMessage",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 1000,
+					"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+				},
+				"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+			},
+			{
+				"name": "dmMessageVariations",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1000
+					},
+					"maxItems": 5,
+					"default": [],
+					"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+				},
+				"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+			},
+			{
+				"name": "buttons",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"required": [
+							"type",
+							"title",
+							"url"
+						],
+						"properties": {
+							"type": {
+								"type": "string",
+								"enum": [
+									"url"
+								]
+							},
+							"title": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 20
+							},
+							"url": {
+								"type": "string",
+								"format": "uri",
+								"pattern": "^https?://",
+								"description": "Public HTTP(S) URL; private hosts and embedded credentials are rejected."
+							}
+						}
+					},
+					"maxItems": 3,
+					"default": []
+				},
+				"description": ""
+			},
+			{
+				"name": "commentReply",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 1000,
+					"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+				},
+				"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+			},
+			{
+				"name": "commentReplyVariations",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 1000
+					},
+					"maxItems": 5,
+					"default": [],
+					"description": "Uniform random choice independent of the DM."
+				},
+				"description": "Uniform random choice independent of the DM."
+			},
+			{
+				"name": "dmDelaySeconds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 86400,
+					"default": 0
+				},
+				"description": ""
+			},
+			{
+				"name": "commentReplyDelaySeconds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 86400,
+					"default": 0,
+					"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+				},
+				"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+			},
+			{
+				"name": "isActive",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": true
+				},
+				"description": ""
+			},
+			{
+				"name": "linkTracking",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"enum": [
+						false
+					],
+					"default": false
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"profileId",
+			"name",
+			"trigger",
+			"platformPostId",
+			"postId",
+			"postTitle",
+			"keywords",
+			"matchMode",
+			"excludeKeywords",
+			"typoTolerance",
+			"dmMessage",
+			"dmMessageVariations",
+			"buttons",
+			"commentReply",
+			"commentReplyVariations",
+			"dmDelaySeconds",
+			"commentReplyDelaySeconds",
+			"isActive",
+			"linkTracking"
+		]
+	},
+	{
 		"name": "connect:complete",
 		"group": "connect",
 		"action": "complete",
@@ -1110,6 +1871,698 @@ export const generatedCommands: GeneratedCommand[] = [
 		]
 	},
 	{
+		"name": "inbox:delete-comment",
+		"group": "inbox",
+		"action": "delete-comment",
+		"summary": "Delete a comment",
+		"description": "Deletes a comment. Requires a read-write API key and the account's comment-management scope. `canDelete` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only allows deleting replies the connected account itself wrote.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/inbox/comments/{postId}",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			},
+			{
+				"name": "commentId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Platform id of the comment to delete."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:get-conversation",
+		"group": "inbox",
+		"action": "get-conversation",
+		"summary": "Get a direct message conversation",
+		"description": "Returns one thread, refreshing PostZen’s stored copy from the platform first. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id that owns the conversation."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:hide-comment",
+		"group": "inbox",
+		"action": "hide-comment",
+		"summary": "Hide a comment",
+		"description": "Hides a comment so only its author still sees it. Requires a read-write API key and the account's comment-management scope. `canHide` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only supports hiding top-level replies on the connected account's own posts — hiding one there also hides the replies beneath it.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/hide",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "commentId",
+				"description": "Platform id of the comment to hide or unhide.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				},
+				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId"
+		]
+	},
+	{
+		"name": "inbox:list-conversation-messages",
+		"group": "inbox",
+		"action": "list-conversation-messages",
+		"summary": "List messages in a conversation",
+		"description": "Returns the messages PostZen holds for one thread, oldest first by default, refreshing them from the platform when the stored copy is stale. Strictly read-only: it never marks the thread read — use `POST /v1/inbox/conversations/{conversationId}/read` for that. Meta returns full content only for roughly the twenty newest Instagram messages, so older ones may carry an id and timestamp without text or attachments. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id that owns the conversation."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 100
+				},
+				"description": "Page size."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Opaque pagination cursor from `pagination.nextCursor`. A malformed cursor is a 400."
+			},
+			{
+				"name": "sortOrder",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"asc",
+						"desc"
+					],
+					"default": "asc"
+				},
+				"description": "Order by send time."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:list-conversations",
+		"group": "inbox",
+		"action": "list-conversations",
+		"summary": "List direct message conversations",
+		"description": "Returns the Instagram direct message threads PostZen holds for the accounts this key can reach, newest activity first, and refreshes that stored copy from the platform as a side effect (throttled per account, so a tight polling loop costs nothing extra). `meta` reports which accounts could not be refreshed; their stored threads are still returned. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/inbox/conversations",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the read to one connected account. Omitted, every Instagram account the key can reach is queried."
+			},
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the read to accounts on one profile."
+			},
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"instagram"
+					]
+				},
+				"description": "Restrict the read to one platform. Direct messages cover Instagram only; any other value is a validation error."
+			},
+			{
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"active",
+						"archived"
+					]
+				},
+				"description": "Return only active or only archived threads. Archive state is PostZen-local."
+			},
+			{
+				"name": "sortOrder",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"asc",
+						"desc"
+					],
+					"default": "desc"
+				},
+				"description": "Order by `updatedTime`."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 50
+				},
+				"description": "Page size."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Opaque pagination cursor. Pass `pagination.nextCursor` from the previous response."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:list-post-comments",
+		"group": "inbox",
+		"action": "list-post-comments",
+		"summary": "List comments on a post",
+		"description": "Returns the comments the platform holds for one Instagram, Facebook, or Threads post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram threads are only two levels deep, so a reply never carries replies of its own. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/inbox/comments/{postId}",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 25
+				},
+				"description": "Page size. Platform page ceilings may return fewer."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Opaque pagination cursor. Pass `pagination.cursor` from the previous response to fetch the next page."
+			},
+			{
+				"name": "commentId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Return the replies to this comment instead of the post's own comments."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:mark-conversation-read",
+		"group": "inbox",
+		"action": "mark-conversation-read",
+		"summary": "Mark a conversation read",
+		"description": "Moves the thread’s local read watermark to its newest synced message and returns how many incoming messages crossed from unread to read. Nothing is sent to the platform, and reading messages never does this implicitly. Requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}/read",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id that owns the conversation."
+				},
+				"description": "PostZen account id that owns the conversation."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId"
+		]
+	},
+	{
+		"name": "inbox:reply-to-post",
+		"group": "inbox",
+		"action": "reply-to-post",
+		"summary": "Comment on a post or reply to a comment",
+		"description": "Publishes a comment on the post, or a reply to `commentId` when one is given. Requires a read-write API key and the account's comment-management scope; without the scope the call answers `403 platformCapabilityMissing` and nothing is sent to the platform. `attachmentUrl` is Facebook only — every other platform rejects it with `400 attachmentUnsupported`. Instagram is two levels deep, so replying to a reply is redirected to that reply's top-level parent. A Threads reply is created as a container and then published; when the publish is still pending after PostZen's internal retries the call returns `502 publishPending` and the reply may still appear on its own, so check the thread before retrying rather than posting twice.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/comments/{postId}",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				},
+				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			},
+			{
+				"name": "message",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "Comment text to publish."
+				},
+				"description": "Comment text to publish."
+			},
+			{
+				"name": "commentId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Reply to this comment instead of commenting on the post. On Instagram a reply to a reply is redirected to its top-level parent."
+				},
+				"description": "Reply to this comment instead of commenting on the post. On Instagram a reply to a reply is redirected to its top-level parent."
+			},
+			{
+				"name": "attachmentUrl",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "uri",
+					"description": "Facebook only. Publicly reachable image URL to attach to the comment. Sending it for any other platform returns `400 attachmentUnsupported`."
+				},
+				"description": "Facebook only. Publicly reachable image URL to attach to the comment. Sending it for any other platform returns `400 attachmentUnsupported`."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"message",
+			"commentId",
+			"attachmentUrl"
+		]
+	},
+	{
+		"name": "inbox:search-conversations",
+		"group": "inbox",
+		"action": "search-conversations",
+		"summary": "Search direct message conversations",
+		"description": "Searches the conversations PostZen has already synced — Meta exposes no message search API, so this reads PostZen's own copy and refreshes it first. Message text matches whole tokens, case- and accent-insensitively (`cafe` finds `café`, `art` does not match `start`); participant names and usernames match on substring. Setting `direction` narrows the search to message text only, so a thread that matched only on the participant's name is excluded. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/inbox/conversations/search",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "query",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 2,
+					"maxLength": 200
+				},
+				"description": "Search term."
+			},
+			{
+				"name": "direction",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"incoming",
+						"outgoing"
+					]
+				},
+				"description": "Match only messages the account received (`incoming`) or sent (`outgoing`). Restricts matching to message text."
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the read to one connected account. Omitted, every Instagram account the key can reach is queried."
+			},
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the read to accounts on one profile."
+			},
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"instagram"
+					]
+				},
+				"description": "Restrict the read to one platform. Direct messages cover Instagram only; any other value is a validation error."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 50,
+					"default": 20
+				},
+				"description": "Page size."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Pagination cursor from `pagination.nextCursor`. Unlike the list cursor this one is an offset into the result set, so it is only valid for the same query."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:send-message",
+		"group": "inbox",
+		"action": "send-message",
+		"summary": "Send a direct message",
+		"description": "Sends a message into an existing thread. The recipient is the other participant on that thread, so no recipient id is needed. Exactly one of `message` or `attachmentUrl` may be sent per call — Meta's Send API carries one payload at a time, so combining them is a 400. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. Sends are hard-gated on the account's messaging scope. Requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "Idempotency-Key",
+				"in": "header",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"maxLength": 255
+				},
+				"description": "Replay protection. Retrying with the same key and the same body replays the stored outcome and sets `Idempotent-Replayed: true`; the same key with a different body is a 422, and a key whose first request is still in flight is a 409. A send whose outcome could not be confirmed (`502 providerOutcomeUnknown`) is stored as a terminal outcome, so retrying that key returns the same 502 rather than risking a duplicate message. Keys are retained for 24 hours."
+			},
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id that owns the conversation."
+				},
+				"description": "PostZen account id that owns the conversation."
+			},
+			{
+				"name": "message",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Message text. Cannot be combined with `attachmentUrl`: Meta accepts one payload per call, so a request carrying both is rejected with a 400 rather than silently sending half of it."
+				},
+				"description": "Message text. Cannot be combined with `attachmentUrl`: Meta accepts one payload per call, so a request carrying both is rejected with a 400 rather than silently sending half of it."
+			},
+			{
+				"name": "attachmentUrl",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "uri",
+					"description": "Publicly fetchable http(s) URL. Meta downloads it itself, so it must be reachable without credentials — `POST /v1/media/upload-direct` returns a URL that qualifies."
+				},
+				"description": "Publicly fetchable http(s) URL. Meta downloads it itself, so it must be reachable without credentials — `POST /v1/media/upload-direct` returns a URL that qualifies."
+			},
+			{
+				"name": "attachmentType",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"image",
+						"video",
+						"audio",
+						"file"
+					],
+					"description": "Required whenever `attachmentUrl` is set."
+				},
+				"description": "Required whenever `attachmentUrl` is set."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"message",
+			"attachmentUrl",
+			"attachmentType"
+		]
+	},
+	{
+		"name": "inbox:unhide-comment",
+		"group": "inbox",
+		"action": "unhide-comment",
+		"summary": "Unhide a comment",
+		"description": "Restores a hidden comment. Requires a read-write API key and the account's comment-management scope. On Threads, unhiding a top-level reply also restores the replies beneath it.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/hide",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "commentId",
+				"description": "Platform id of the comment to hide or unhide.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:update-conversation",
+		"group": "inbox",
+		"action": "update-conversation",
+		"summary": "Archive or unarchive a conversation",
+		"description": "Sets the thread’s status. This is PostZen-local state — Meta has no archive API, so nothing is sent to the platform and a later sync never overwrites it. Requires a read-write API key.",
+		"method": "PUT",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id that owns the conversation."
+				},
+				"description": "PostZen account id that owns the conversation."
+			},
+			{
+				"name": "status",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"active",
+						"archived"
+					]
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"status"
+		]
+	},
+	{
 		"name": "media:create-presign",
 		"group": "media",
 		"action": "create-presign",
@@ -1183,6 +2636,52 @@ export const generatedCommands: GeneratedCommand[] = [
 			"size",
 			"profileId"
 		]
+	},
+	{
+		"name": "media:upload-direct",
+		"group": "media",
+		"action": "upload-direct",
+		"summary": "Upload a file directly",
+		"description": "Uploads a file in the request itself and returns a public URL, for cases where a two-step presign is inconvenient and the file is small — chiefly direct message attachments, where Meta fetches the URL itself. The stored object is deleted automatically after seven days, so it is not a substitute for `POST /v1/media/presign` when publishing posts. Maximum 25MB. Requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/media/upload-direct",
+		"positionals": [],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "posts:bulk-upload",
+		"group": "posts",
+		"action": "bulk-upload",
+		"summary": "Bulk upload posts from CSV",
+		"description": "Validates and creates up to 500 posts from a CSV file. This endpoint requires a read-write API key. Each data row targets every connected account for the selected platforms on one profile. Set `dryRun=true` to validate without checking the Free plan's monthly post allowance, ingesting media, or writing data. A non-dry-run upload is rejected with HTTP 402 before creating any rows if its publishable targets would exceed that allowance. A mixed success/failure response uses HTTP 207; all-success and all-failure responses use HTTP 200.\n\n| CSV column | Purpose |\n| --- | --- |\n| `post_content` | Required base post text. |\n| `platforms` | Required comma-separated platforms: `instagram`, `facebook`, `threads`, `tiktok`, `linkedin`, `x`, `youtube`, `pinterest`, `bluesky`, or `telegram`; `twitter` aliases `x`. |\n| `profiles` | Required single profile id or unique profile name. |\n| `schedule_time` | Required column. Use `YYYY-MM-DD HH:mm[:ss]` in `tz`, or ISO 8601 with an explicit offset. May be empty for draft, publish-now, or queue rows. |\n| `tz` | IANA timezone; defaults to `UTC`. |\n| `media_urls` | Comma-separated HTTP(S) URLs, up to 10 per row and 50 distinct URLs per upload. |\n| `is_draft`, `publish_now`, `use_queue` | Mutually exclusive boolean mode flags. With none set, the row is scheduled. |\n| `title`, `tags`, `hashtags`, `mentions`, `visibility` | General title, comma-separated tags, appended hashtags/mentions, and YouTube visibility. |\n| `custom_content_<platform>` | Platform-specific content override; `custom_content_twitter` targets X. |\n| `youtube_title`, `youtube_description` | YouTube title and description override. |\n| `facebook_first_comment`, `linkedin_first_comment` | First comments. |\n| `instagram_content_type`, `instagram_collaborators`, `instagram_first_comment` | Instagram post type, collaborators, and first comment. |\n| `tiktok_privacy`, `tiktok_allow_comments`, `tiktok_allow_duet`, `tiktok_allow_stitch`, `tiktok_brand_partner`, `tiktok_organic_brand`, `tiktok_draft`, `tiktok_description` | TikTok publishing options. |\n| `telegram_parse_mode`, `telegram_disable_web_page_preview`, `telegram_disable_notification`, `telegram_protect_content` | Telegram publishing options. |\n| `pinterest_title`, `pinterest_link`, `pinterest_board_id`, `pinterest_cover_image_url`, `pinterest_cover_image_key_frame_time` | Pinterest pin options, including alternative video cover selections. |",
+		"method": "POST",
+		"pathTemplate": "/v1/posts/bulk-upload",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "dryRun",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": false
+				},
+				"description": "Validate every row without checking the monthly post allowance, ingesting media, or creating posts."
+			},
+			{
+				"name": "x-request-id",
+				"in": "header",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Optional upload idempotency key. Each row derives the stable key `bulk-api:{x-request-id}:{1-based row index}`."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
 	},
 	{
 		"name": "posts:create",
@@ -1540,6 +3039,16 @@ export const generatedCommands: GeneratedCommand[] = [
 											},
 											"altText": {
 												"type": "string"
+											},
+											"coverImageUrl": {
+												"type": "string",
+												"format": "uri",
+												"description": "Cover or thumbnail image URL for video pins."
+											},
+											"coverImageKeyFrameTime": {
+												"type": "number",
+												"minimum": 0,
+												"description": "Cover keyframe time in seconds for video pins, as an alternative to coverImageUrl."
 											}
 										}
 									},
@@ -1633,14 +3142,35 @@ export const generatedCommands: GeneratedCommand[] = [
 				"description": "Create a draft. `platforms` is optional for drafts."
 			},
 			{
+				"name": "queuedFromProfile",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+				},
+				"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Specific queue on `queuedFromProfile`. Defaults to that profile's default queue. Requires `queuedFromProfile`."
+				},
+				"description": "Specific queue on `queuedFromProfile`. Defaults to that profile's default queue. Requires `queuedFromProfile`."
+			},
+			{
 				"name": "timezone",
 				"in": "body",
 				"required": false,
 				"schema": {
 					"type": "string",
-					"default": "UTC"
+					"default": "UTC",
+					"description": "Ignored in queue mode; queued posts take the queue's timezone."
 				},
-				"description": ""
+				"description": "Ignored in queue mode; queued posts take the queue's timezone."
 			},
 			{
 				"name": "tags",
@@ -1664,9 +3194,53 @@ export const generatedCommands: GeneratedCommand[] = [
 			"scheduledFor",
 			"publishNow",
 			"isDraft",
+			"queuedFromProfile",
+			"queueId",
 			"timezone",
 			"tags"
 		]
+	},
+	{
+		"name": "posts:delete",
+		"group": "posts",
+		"action": "delete",
+		"summary": "Delete a post",
+		"description": "Deletes a draft, scheduled, queued, failed, partially failed, or canceled post. Published and publishing posts cannot be deleted.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/posts/{postId}",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "PostZen post id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "posts:get",
+		"group": "posts",
+		"action": "get",
+		"summary": "Get a post",
+		"description": "Returns one post when it belongs to a profile available to the API key. Missing and inaccessible posts both return 404.",
+		"method": "GET",
+		"pathTemplate": "/v1/posts/{postId}",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "PostZen post id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
 	},
 	{
 		"name": "posts:list",
@@ -1903,6 +3477,522 @@ export const generatedCommands: GeneratedCommand[] = [
 		"bodyKeys": []
 	},
 	{
+		"name": "posts:update",
+		"group": "posts",
+		"action": "update",
+		"summary": "Update a post",
+		"description": "Updates an editable post. Every body field is optional; omitted fields keep their current values, and omitting all timing fields keeps the current scheduling and draft status. At most one of `publishNow`, `scheduledFor`, `isDraft`, or `queuedFromProfile` may select a new timing mode.",
+		"method": "PUT",
+		"pathTemplate": "/v1/posts/{postId}",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "PostZen post id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "title",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Internal post title. YouTube uses this as the fallback video title when `settings.title` is omitted."
+				},
+				"description": "Internal post title. YouTube uses this as the fallback video title when `settings.title` is omitted."
+			},
+			{
+				"name": "content",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"default": "",
+					"description": "Shared post text. Platform-specific validation still applies."
+				},
+				"description": "Shared post text. Platform-specific validation still applies."
+			},
+			{
+				"name": "mediaItems",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"maxItems": 10,
+					"description": "Duplicate URLs are removed before the post is created.",
+					"items": {
+						"type": "object",
+						"required": [
+							"url"
+						],
+						"properties": {
+							"url": {
+								"type": "string",
+								"format": "uri",
+								"description": "PostZen-hosted `publicUrl` from `POST /v1/media/presign`, or an external image/video URL. External URLs are downloaded and re-hosted by PostZen; they must resolve to an image or video (PDF is not supported) of at most 100 MB."
+							},
+							"title": {
+								"type": "string",
+								"description": "Optional alt text/title for the media item."
+							}
+						}
+					}
+				},
+				"description": "Duplicate URLs are removed before the post is created."
+			},
+			{
+				"name": "platforms",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"required": [
+							"platform",
+							"accountId"
+						],
+						"properties": {
+							"platform": {
+								"type": "string",
+								"enum": [
+									"twitter",
+									"x",
+									"instagram",
+									"tiktok",
+									"linkedin",
+									"facebook",
+									"youtube",
+									"threads",
+									"pinterest",
+									"bluesky",
+									"telegram"
+								]
+							},
+							"accountId": {
+								"type": "string",
+								"description": "PostZen account id or provider account id."
+							},
+							"customContent": {
+								"type": "string",
+								"description": "Overrides shared `content` for this platform."
+							},
+							"settings": {
+								"description": "Platform-specific publishing options. Unknown keys are ignored.",
+								"oneOf": [
+									{
+										"type": "object",
+										"description": "Instagram target settings. `postType` selects the format: `feed` and `story` take exactly one media item, `reel` takes exactly one video, and `carousel` takes 2–10 media items (images and videos may be mixed). Captions are limited to 2,200 characters.",
+										"properties": {
+											"postType": {
+												"type": "string",
+												"enum": [
+													"feed",
+													"story",
+													"reel",
+													"carousel"
+												],
+												"default": "feed",
+												"description": "Instagram post format. `feed` (default) and `story` publish a single media item; `reel` publishes a single video; `carousel` publishes 2–10 ordered media items and may mix images and videos. Sending multiple media items with `feed` returns a validation error directing you to `carousel`."
+											},
+											"collaborators": {
+												"type": "array",
+												"description": "Up to three Instagram usernames to invite as collaborators. Supported on feed, reel, and carousel posts.",
+												"items": {
+													"type": "string"
+												}
+											},
+											"userTags": {
+												"type": "array",
+												"description": "Photo tags with relative `x`/`y` coordinates from 0 to 1. Feed posts only — user tags are not supported on carousels, reels, or stories.",
+												"items": {
+													"type": "object",
+													"required": [
+														"username",
+														"x",
+														"y"
+													],
+													"properties": {
+														"username": {
+															"type": "string"
+														},
+														"x": {
+															"type": "number"
+														},
+														"y": {
+															"type": "number"
+														}
+													}
+												}
+											},
+											"firstComment": {
+												"type": "string",
+												"description": "Posts a first comment after publishing. Supported on feed, reel, and carousel posts. Maximum 2,200 characters."
+											},
+											"shareToFeed": {
+												"type": "boolean",
+												"description": "Reels only. Defaults to `true`. Set to `false` to keep the reel off the profile feed."
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"link": {
+												"type": "string",
+												"format": "uri"
+											},
+											"firstComment": {
+												"type": "string"
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"replyControl": {
+												"type": "string",
+												"enum": [
+													"everyone",
+													"accountsYouFollow",
+													"mentionedOnly"
+												]
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"privacyLevel": {
+												"type": "string",
+												"enum": [
+													"publicToEveryone",
+													"mutualFollowFriends",
+													"followerOfCreator",
+													"selfOnly"
+												]
+											},
+											"allowComments": {
+												"type": "boolean"
+											},
+											"allowDuet": {
+												"type": "boolean"
+											},
+											"allowStitch": {
+												"type": "boolean"
+											},
+											"disableComment": {
+												"type": "boolean"
+											},
+											"disableDuet": {
+												"type": "boolean"
+											},
+											"disableStitch": {
+												"type": "boolean"
+											},
+											"videoCoverTimestampMs": {
+												"type": "number"
+											},
+											"uploadAsDraft": {
+												"type": "boolean"
+											},
+											"brandContentToggle": {
+												"type": "boolean"
+											},
+											"brandOrganicToggle": {
+												"type": "boolean"
+											}
+										}
+									},
+									{
+										"type": "object",
+										"description": "LinkedIn target settings. A LinkedIn post carries exactly one media kind: no media (text only), 1–20 images, one MP4 video, or one document (PDF/DOC/DOCX/PPT/PPTX). Commentary is limited to 3,000 characters. Every key below is also accepted in `snake_case` (for example `first_comment` and `organization_urn`).",
+										"properties": {
+											"visibility": {
+												"type": "string",
+												"enum": [
+													"PUBLIC",
+													"CONNECTIONS"
+												],
+												"default": "PUBLIC",
+												"description": "Who can see the post. `CONNECTIONS` is only valid for a member (personal profile) post — combining it with `organizationUrn` is a validation error, because a company page has no connections."
+											},
+											"videoTitle": {
+												"type": "string",
+												"maxLength": 200,
+												"description": "Optional title for video posts, shown on the LinkedIn video player. Ignored for non-video posts."
+											},
+											"documentTitle": {
+												"type": "string",
+												"maxLength": 200,
+												"description": "Title for a document (PDF carousel) post. LinkedIn requires a title on document posts; when this is omitted PostZen falls back to the uploaded file's name. Ignored for non-document posts."
+											},
+											"organizationUrn": {
+												"type": "string",
+												"pattern": "^(urn:li:organization:[0-9]+|[0-9]+)$",
+												"description": "Publish as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes — reconnect the account if it was connected before company-page posting was enabled. Also accepted as `organizationId` / `organization_id`."
+											},
+											"firstComment": {
+												"type": "string",
+												"maxLength": 1250,
+												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it."
+											},
+											"disableLinkPreview": {
+												"type": "boolean",
+												"description": "LinkedIn's Posts API never scrapes URLs, so a bare link renders as plain text. When this is `false` or omitted and the text contains a URL, PostZen attaches a link card for the first URL; because no scraped metadata is available, the card is titled with the URL's hostname (for example `example.com`). Set to `true` to keep the post as plain text with no card. Also accepted as `disableLinkCard`."
+											},
+											"reshareUrl": {
+												"type": "string",
+												"description": "LinkedIn post to quote-reshare. Accepts a public post permalink or a `urn:li:activity:` / `urn:li:share:` / `urn:li:ugcPost:` URN. Mutually exclusive with uploaded media."
+											},
+											"geoRestrictionCountries": {
+												"type": "array",
+												"items": {
+													"type": "string",
+													"pattern": "^[A-Z]{2}$"
+												},
+												"maxItems": 25,
+												"description": "Restrict who sees the post to these countries, as uppercase ISO 3166-1 alpha-2 codes (for example `[\"US\", \"CA\"]`). Up to 25 countries, and organization posts only — supplying this without `organizationUrn` is a validation error."
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"replySettings": {
+												"type": "string",
+												"enum": [
+													"following",
+													"mentionedUsers"
+												]
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"title": {
+												"type": "string"
+											},
+											"privacyStatus": {
+												"type": "string",
+												"enum": [
+													"public",
+													"unlisted",
+													"private"
+												]
+											},
+											"tags": {
+												"oneOf": [
+													{
+														"type": "array",
+														"items": {
+															"type": "string"
+														}
+													},
+													{
+														"type": "string",
+														"description": "Comma-separated tags."
+													}
+												]
+											},
+											"categoryId": {
+												"type": "string"
+											},
+											"madeForKids": {
+												"type": "boolean"
+											},
+											"notifySubscribers": {
+												"type": "boolean"
+											}
+										}
+									},
+									{
+										"type": "object",
+										"required": [
+											"boardId"
+										],
+										"properties": {
+											"boardId": {
+												"type": "string",
+												"description": "Pinterest board to publish the pin to."
+											},
+											"title": {
+												"type": "string",
+												"description": "Pin title."
+											},
+											"link": {
+												"type": "string",
+												"format": "uri",
+												"description": "Destination link for the pin."
+											},
+											"altText": {
+												"type": "string"
+											},
+											"coverImageUrl": {
+												"type": "string",
+												"format": "uri",
+												"description": "Cover or thumbnail image URL for video pins."
+											},
+											"coverImageKeyFrameTime": {
+												"type": "number",
+												"minimum": 0,
+												"description": "Cover keyframe time in seconds for video pins, as an alternative to coverImageUrl."
+											}
+										}
+									},
+									{
+										"type": "object",
+										"properties": {
+											"altTexts": {
+												"type": "array",
+												"items": {
+													"type": "string",
+													"maxLength": 2000
+												},
+												"description": "Alt text for each image, matched to the media by order. Each entry is limited to 2000 characters."
+											},
+											"languages": {
+												"type": "array",
+												"items": {
+													"type": "string"
+												},
+												"maxItems": 3,
+												"description": "Up to 3 BCP-47 language codes (e.g. `en`, `pt-BR`) declaring the languages of the post text."
+											},
+											"disableLinkCard": {
+												"type": "boolean",
+												"description": "When true, PostZen skips generating an external link preview card for the first URL in the post."
+											}
+										}
+									},
+									{
+										"type": "object",
+										"description": "Telegram target settings. Text-only posts allow 4,096 characters; attaching any media caps the text at 1,024 characters as a caption. A post carries 1-10 media items and may mix photos and videos in one album, but a GIF must be posted on its own. Telegram reports no post analytics.",
+										"properties": {
+											"parseMode": {
+												"type": "string",
+												"enum": [
+													"html",
+													"markdownv2"
+												],
+												"description": "Formatting mode for the message or caption. Omit to send plain text, which is the default. `html` is recommended: it only requires escaping `<`, `>`, and `&`, whereas `markdownv2` requires escaping every one of `_ * [ ] ( ) ~ ` > # + - = | { } . !` and rejects the whole message otherwise."
+											},
+											"disableNotification": {
+												"type": "boolean",
+												"description": "When true, members receive the post silently, with no sound or vibration."
+											},
+											"disableLinkPreview": {
+												"type": "boolean",
+												"description": "When true, suppresses the link preview card for URLs in the text. Applies to text-only posts; a post with media has no link preview."
+											},
+											"protectContent": {
+												"type": "boolean",
+												"description": "When true, Telegram blocks forwarding and saving of the post."
+											}
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				"description": ""
+			},
+			{
+				"name": "scheduledFor",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "date-time",
+					"description": "ISO 8601 date for scheduled posts. Must be at least 60 seconds in the future."
+				},
+				"description": "ISO 8601 date for scheduled posts. Must be at least 60 seconds in the future."
+			},
+			{
+				"name": "publishNow",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"description": "Publish synchronously where possible."
+				},
+				"description": "Publish synchronously where possible."
+			},
+			{
+				"name": "isDraft",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"description": "Create a draft. `platforms` is optional for drafts."
+				},
+				"description": "Create a draft. `platforms` is optional for drafts."
+			},
+			{
+				"name": "queuedFromProfile",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+				},
+				"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Specific queue on `queuedFromProfile`. Defaults to that profile's default queue. Requires `queuedFromProfile`."
+				},
+				"description": "Specific queue on `queuedFromProfile`. Defaults to that profile's default queue. Requires `queuedFromProfile`."
+			},
+			{
+				"name": "timezone",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"default": "UTC",
+					"description": "Ignored in queue mode; queued posts take the queue's timezone."
+				},
+				"description": "Ignored in queue mode; queued posts take the queue's timezone."
+			},
+			{
+				"name": "tags",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					}
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"title",
+			"content",
+			"mediaItems",
+			"platforms",
+			"scheduledFor",
+			"publishNow",
+			"isDraft",
+			"queuedFromProfile",
+			"queueId",
+			"timezone",
+			"tags"
+		]
+	},
+	{
 		"name": "profiles:create",
 		"group": "profiles",
 		"action": "create",
@@ -2077,6 +4167,905 @@ export const generatedCommands: GeneratedCommand[] = [
 			"description",
 			"color",
 			"isDefault"
+		]
+	},
+	{
+		"name": "queues:create-slot",
+		"group": "queues",
+		"action": "create-slot",
+		"summary": "Create a queue",
+		"description": "Creates a posting queue on a profile. A profile may hold up to 10 queues, each with up to 56 slots. The first queue on a profile automatically becomes its default. This endpoint requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/queue/slots",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "Profile the queue belongs to."
+				},
+				"description": "Profile the queue belongs to."
+			},
+			{
+				"name": "name",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 100,
+					"default": "Default Queue"
+				},
+				"description": ""
+			},
+			{
+				"name": "description",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"maxLength": 500
+				},
+				"description": ""
+			},
+			{
+				"name": "timezone",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "IANA timezone. Rejected if unknown — queues never silently fall back to UTC."
+				},
+				"description": "IANA timezone. Rejected if unknown — queues never silently fall back to UTC."
+			},
+			{
+				"name": "slots",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "array",
+					"maxItems": 56,
+					"items": {
+						"type": "object",
+						"required": [
+							"dayOfWeek",
+							"time"
+						],
+						"properties": {
+							"dayOfWeek": {
+								"type": "integer",
+								"minimum": 0,
+								"maximum": 6,
+								"description": "Day of the week, 0 = Sunday through 6 = Saturday."
+							},
+							"time": {
+								"type": "string",
+								"pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+								"description": "24-hour wall-clock time (`HH:mm`) in the queue's timezone."
+							}
+						}
+					},
+					"description": "Weekly slots. May be empty; a queue with no slots accepts no queued posts until slots are added."
+				},
+				"description": "Weekly slots. May be empty; a queue with no slots accepts no queued posts until slots are added."
+			},
+			{
+				"name": "active",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": true
+				},
+				"description": ""
+			},
+			{
+				"name": "setAsDefault",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"description": "Make this the profile's default queue. The first queue on a profile becomes default regardless."
+				},
+				"description": "Make this the profile's default queue. The first queue on a profile becomes default regardless."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"profileId",
+			"name",
+			"description",
+			"timezone",
+			"slots",
+			"active",
+			"setAsDefault"
+		]
+	},
+	{
+		"name": "queues:delete-slot",
+		"group": "queues",
+		"action": "delete-slot",
+		"summary": "Delete a queue",
+		"description": "Deletes the queue named by `queueId`, or every queue on the profile when `queueId` is omitted. Posts already placed by the queue keep their scheduled times; only the queue link is removed. Deleting the default queue promotes the profile's oldest remaining queue. This endpoint requires a read-write API key.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/queue/slots",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Profile that owns the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Queue to delete. Omit to delete every queue on the profile."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "queues:get-next-slot",
+		"group": "queues",
+		"action": "get-next-slot",
+		"summary": "Get the next queue slot",
+		"description": "Returns the next free instant the queue would hand out. This is a preview only — the slot is not reserved. Create queued posts with `queuedFromProfile` rather than passing this value back as `scheduledFor`, or a concurrent create can take the slot first.",
+		"method": "GET",
+		"pathTemplate": "/v1/queue/next-slot",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Profile that owns the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Specific queue. Defaults to the profile's default queue."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "queues:list-slots",
+		"group": "queues",
+		"action": "list-slots",
+		"summary": "Get a queue schedule",
+		"description": "Returns the queue selected by `queueId`, or the profile's default queue when `queueId` is omitted. With `all=true` every queue on the profile is returned instead. `nextSlots` holds the next five instants the queue would hand out, already skipping occupied slots; a paused or slotless queue returns an empty array.",
+		"method": "GET",
+		"pathTemplate": "/v1/queue/slots",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Profile that owns the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Specific queue. Defaults to the profile's default queue. Cannot be combined with `all=true`."
+			},
+			{
+				"name": "all",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "boolean"
+				},
+				"description": "Return every queue on the profile instead of a single schedule."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "queues:preview",
+		"group": "queues",
+		"action": "preview",
+		"summary": "Preview upcoming queue slots",
+		"description": "Returns the next `count` instants the queue would hand out, in ascending order. Occupied slots are skipped, so the preview matches what the next posts would actually receive. Previewing reserves nothing.",
+		"method": "GET",
+		"pathTemplate": "/v1/queue/preview",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Profile that owns the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Specific queue. Defaults to the profile's default queue."
+			},
+			{
+				"name": "count",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 20
+				},
+				"description": "How many upcoming slots to return."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "queues:update-slot",
+		"group": "queues",
+		"action": "update-slot",
+		"summary": "Update a queue",
+		"description": "Replaces a queue's timezone and slots, and optionally renames, pauses, or promotes it to default. With `reshuffleExisting: true` the queue's future scheduled posts are re-placed onto the new schedule in their existing order; posts that are already publishing, published, or failed are never moved, and at most 200 posts may move in one call. Validation and slot assignment both run before the first write, so a rejected update leaves the queue untouched. This endpoint requires a read-write API key.",
+		"method": "PUT",
+		"pathTemplate": "/v1/queue/slots",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "Profile that owns the queue."
+				},
+				"description": "Profile that owns the queue."
+			},
+			{
+				"name": "queueId",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"description": "Queue to update. Defaults to the profile's default queue."
+				},
+				"description": "Queue to update. Defaults to the profile's default queue."
+			},
+			{
+				"name": "name",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 100
+				},
+				"description": ""
+			},
+			{
+				"name": "description",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"maxLength": 500,
+					"description": "Send an empty string to clear the description."
+				},
+				"description": "Send an empty string to clear the description."
+			},
+			{
+				"name": "timezone",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": ""
+			},
+			{
+				"name": "slots",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "array",
+					"maxItems": 56,
+					"items": {
+						"type": "object",
+						"required": [
+							"dayOfWeek",
+							"time"
+						],
+						"properties": {
+							"dayOfWeek": {
+								"type": "integer",
+								"minimum": 0,
+								"maximum": 6,
+								"description": "Day of the week, 0 = Sunday through 6 = Saturday."
+							},
+							"time": {
+								"type": "string",
+								"pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+								"description": "24-hour wall-clock time (`HH:mm`) in the queue's timezone."
+							}
+						}
+					},
+					"description": "Replaces the queue's slots entirely."
+				},
+				"description": "Replaces the queue's slots entirely."
+			},
+			{
+				"name": "active",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean"
+				},
+				"description": ""
+			},
+			{
+				"name": "setAsDefault",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean"
+				},
+				"description": ""
+			},
+			{
+				"name": "reshuffleExisting",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"description": "Re-place the queue's future scheduled posts onto the new schedule. Only applies when the timezone or slots actually changed."
+				},
+				"description": "Re-place the queue's future scheduled posts onto the new schedule. Only applies when the timezone or slots actually changed."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"profileId",
+			"queueId",
+			"name",
+			"description",
+			"timezone",
+			"slots",
+			"active",
+			"setAsDefault",
+			"reshuffleExisting"
+		]
+	},
+	{
+		"name": "webhooks:create",
+		"group": "webhooks",
+		"action": "create",
+		"summary": "Create a webhook",
+		"description": "Creates an outbound webhook endpoint. A user may have up to 25 endpoints. This endpoint requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/webhooks",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "name",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 80
+				},
+				"description": ""
+			},
+			{
+				"name": "url",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"format": "uri",
+					"description": "Public HTTPS endpoint URL."
+				},
+				"description": "Public HTTPS endpoint URL."
+			},
+			{
+				"name": "events",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "string",
+						"enum": [
+							"post.published",
+							"post.partially_failed",
+							"post.failed",
+							"account.needs_reauth",
+							"account.disconnected",
+							"webhook.test"
+						],
+						"description": "Webhook event type. Receivers should tolerate additional event types in future API versions."
+					}
+				},
+				"description": ""
+			},
+			{
+				"name": "profileAccess",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"all_profiles",
+						"selected_profiles"
+					],
+					"description": "all_profiles receives events for every profile. selected_profiles requires profileIds."
+				},
+				"description": "all_profiles receives events for every profile. selected_profiles requires profileIds."
+			},
+			{
+				"name": "profileIds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Required for selected_profiles and omitted or empty for all_profiles."
+				},
+				"description": "Required for selected_profiles and omitted or empty for all_profiles."
+			},
+			{
+				"name": "secret",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": [
+						"string",
+						"null"
+					],
+					"minLength": 1,
+					"maxLength": 256,
+					"writeOnly": true,
+					"description": "Optional HMAC signing secret. Omit or send null to create an unsigned endpoint."
+				},
+				"description": "Optional HMAC signing secret. Omit or send null to create an unsigned endpoint."
+			},
+			{
+				"name": "customHeaders",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"maxItems": 20,
+					"items": {
+						"type": "object",
+						"required": [
+							"name",
+							"value"
+						],
+						"properties": {
+							"name": {
+								"type": "string",
+								"description": "HTTP header name. Content-Type, transport headers, and X-PostZen-* names are reserved."
+							},
+							"value": {
+								"type": "string",
+								"maxLength": 4096,
+								"writeOnly": true,
+								"description": "Plaintext header value. PostZen encrypts it at rest and never returns it."
+							}
+						}
+					}
+				},
+				"description": ""
+			},
+			{
+				"name": "isActive",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"default": true
+				},
+				"description": ""
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"name",
+			"url",
+			"events",
+			"profileAccess",
+			"profileIds",
+			"secret",
+			"customHeaders",
+			"isActive"
+		]
+	},
+	{
+		"name": "webhooks:delete",
+		"group": "webhooks",
+		"action": "delete",
+		"summary": "Delete a webhook",
+		"description": "Deletes an endpoint and stops new event fan-out. Retained delivery logs remain available until their retention period ends.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/webhooks/{webhookId}",
+		"positionals": [
+			{
+				"name": "webhookId",
+				"description": "PostZen webhook endpoint id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "webhooks:get",
+		"group": "webhooks",
+		"action": "get",
+		"summary": "Get a webhook",
+		"description": "Returns one webhook endpoint visible to the API key without secret or custom header values.",
+		"method": "GET",
+		"pathTemplate": "/v1/webhooks/{webhookId}",
+		"positionals": [
+			{
+				"name": "webhookId",
+				"description": "PostZen webhook endpoint id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "webhooks:list",
+		"group": "webhooks",
+		"action": "list",
+		"summary": "List webhooks",
+		"description": "Returns webhook endpoints visible to the API key, newest first. Secret and custom header values are never returned.",
+		"method": "GET",
+		"pathTemplate": "/v1/webhooks",
+		"positionals": [],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "webhooks:list-deliveries",
+		"group": "webhooks",
+		"action": "list-deliveries",
+		"summary": "List webhook deliveries",
+		"description": "Returns retained delivery logs visible to the API key, newest first. Results are capped to the 1000 most recent matching deliveries.",
+		"method": "GET",
+		"pathTemplate": "/v1/webhook-deliveries",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "webhookId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Filter by webhook endpoint id."
+			},
+			{
+				"name": "event",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"post.published",
+						"post.partially_failed",
+						"post.failed",
+						"account.needs_reauth",
+						"account.disconnected",
+						"webhook.test"
+					],
+					"description": "Webhook event type. Receivers should tolerate additional event types in future API versions."
+				},
+				"description": "Filter by webhook event type."
+			},
+			{
+				"name": "status",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"pending",
+						"retrying",
+						"delivered",
+						"failed"
+					]
+				},
+				"description": "Filter by delivery status."
+			},
+			{
+				"name": "dateFrom",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"description": "Only include deliveries created at or after this ISO 8601 timestamp."
+			},
+			{
+				"name": "dateTo",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"description": "Only include deliveries created at or before this ISO 8601 timestamp. Must be later than `dateFrom`."
+			},
+			{
+				"name": "page",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 1
+				},
+				"description": "1-based page number."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 20
+				},
+				"description": "Page size."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "webhooks:redeliver-delivery",
+		"group": "webhooks",
+		"action": "redeliver-delivery",
+		"summary": "Redeliver a webhook event",
+		"description": "Queues a new six-attempt delivery run on the retained delivery record while preserving its event id and attempt history. The endpoint must still exist and be active, and the delivery must not already be in progress.",
+		"method": "POST",
+		"pathTemplate": "/v1/webhook-deliveries/{deliveryId}/redeliver",
+		"positionals": [
+			{
+				"name": "deliveryId",
+				"description": "PostZen webhook delivery id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "webhooks:test",
+		"group": "webhooks",
+		"action": "test",
+		"summary": "Test a webhook",
+		"description": "Queues a `webhook.test` event through the normal delivery pipeline using the endpoint's current URL, secret, and custom headers. The endpoint must be active.",
+		"method": "POST",
+		"pathTemplate": "/v1/webhooks/{webhookId}/test",
+		"positionals": [
+			{
+				"name": "webhookId",
+				"description": "PostZen webhook endpoint id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "webhooks:update",
+		"group": "webhooks",
+		"action": "update",
+		"summary": "Update a webhook",
+		"description": "Updates one or more endpoint settings. Omitted fields are unchanged. This endpoint requires a read-write API key.",
+		"method": "PUT",
+		"pathTemplate": "/v1/webhooks/{webhookId}",
+		"positionals": [
+			{
+				"name": "webhookId",
+				"description": "PostZen webhook endpoint id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "name",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 80
+				},
+				"description": ""
+			},
+			{
+				"name": "url",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "uri"
+				},
+				"description": ""
+			},
+			{
+				"name": "events",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"minItems": 1,
+					"items": {
+						"type": "string",
+						"enum": [
+							"post.published",
+							"post.partially_failed",
+							"post.failed",
+							"account.needs_reauth",
+							"account.disconnected",
+							"webhook.test"
+						],
+						"description": "Webhook event type. Receivers should tolerate additional event types in future API versions."
+					}
+				},
+				"description": ""
+			},
+			{
+				"name": "profileAccess",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"all_profiles",
+						"selected_profiles"
+					]
+				},
+				"description": ""
+			},
+			{
+				"name": "profileIds",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Replacement profile selection. Must be non-empty for selected_profiles and empty for all_profiles."
+				},
+				"description": "Replacement profile selection. Must be non-empty for selected_profiles and empty for all_profiles."
+			},
+			{
+				"name": "secret",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": [
+						"string",
+						"null"
+					],
+					"minLength": 1,
+					"maxLength": 256,
+					"writeOnly": true,
+					"description": "Omit to keep the stored secret, send a non-empty string to replace it, or send null to remove it."
+				},
+				"description": "Omit to keep the stored secret, send a non-empty string to replace it, or send null to remove it."
+			},
+			{
+				"name": "customHeaders",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"maxItems": 20,
+					"items": {
+						"type": "object",
+						"required": [
+							"name",
+							"value"
+						],
+						"properties": {
+							"name": {
+								"type": "string",
+								"description": "HTTP header name. Content-Type, transport headers, and X-PostZen-* names are reserved."
+							},
+							"value": {
+								"type": "string",
+								"maxLength": 4096,
+								"writeOnly": true,
+								"description": "Plaintext header value. PostZen encrypts it at rest and never returns it."
+							}
+						}
+					},
+					"description": "Omit to keep stored headers. Send the complete collection to replace all headers, or [] to remove all headers. Every supplied value is plaintext and is encrypted at rest."
+				},
+				"description": "Omit to keep stored headers. Send the complete collection to replace all headers, or [] to remove all headers. Every supplied value is plaintext and is encrypted at rest."
+			},
+			{
+				"name": "isActive",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "boolean",
+					"description": "Enable or disable delivery. Re-enabling resets the consecutive exhausted-event count."
+				},
+				"description": "Enable or disable delivery. Re-enabling resets the consecutive exhausted-event count."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"name",
+			"url",
+			"events",
+			"profileAccess",
+			"profileIds",
+			"secret",
+			"customHeaders",
+			"isActive"
 		]
 	}
 ];
