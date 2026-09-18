@@ -1290,6 +1290,74 @@ export const generatedCommands: GeneratedCommand[] = [
 					"default": false
 				},
 				"description": ""
+			},
+			{
+				"name": "audience",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). `whenUnknown` is therefore the important setting: it decides what happens for a first-time commenter.",
+					"properties": {
+						"followerStatus": {
+							"type": "string",
+							"enum": [
+								"any",
+								"follower",
+								"non_follower"
+							],
+							"default": "any"
+						},
+						"minFollowerCount": {
+							"type": "integer",
+							"minimum": 0,
+							"description": "Omit for no size rule. Zero is stored as absent."
+						},
+						"whenUnknown": {
+							"type": "string",
+							"enum": [
+								"send",
+								"skip",
+								"verify"
+							],
+							"default": "send",
+							"description": "What to do when Instagram will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - send `followGate.message` with a confirm button. Tapping it is a message, which grants consent, so the re-check on the tap resolves and the real DM (or `followGate.notFollowingMessage`) follows automatically."
+						}
+					}
+				},
+				"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). `whenUnknown` is therefore the important setting: it decides what happens for a first-time commenter."
+			},
+			{
+				"name": "followGate",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "object",
+					"additionalProperties": false,
+					"description": "Copy for the follow gate. Sensible defaults are used for any field left empty.",
+					"properties": {
+						"message": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 640,
+							"default": "Follow us to get the link, then tap the button below 👇"
+						},
+						"buttonLabel": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 20,
+							"default": "I'm following"
+						},
+						"notFollowingMessage": {
+							"type": "string",
+							"minLength": 1,
+							"maxLength": 1000,
+							"description": "Sent to a commenter we know does not follow (followerStatus=follower). Omit to stay silent on a keyword comment; a confirm tap always gets an answer."
+						}
+					}
+				},
+				"description": "Copy for the follow gate. Sensible defaults are used for any field left empty."
 			}
 		],
 		"bodyMode": "flat",
@@ -1314,7 +1382,9 @@ export const generatedCommands: GeneratedCommand[] = [
 			"dmDelaySeconds",
 			"commentReplyDelaySeconds",
 			"isActive",
-			"linkTracking"
+			"linkTracking",
+			"audience",
+			"followGate"
 		]
 	},
 	{
@@ -1387,7 +1457,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"pending",
 						"sent",
 						"failed",
-						"skipped"
+						"skipped",
+						"gated"
 					]
 				},
 				"description": ""
@@ -1842,6 +1913,84 @@ export const generatedCommands: GeneratedCommand[] = [
 					"default": false
 				},
 				"description": ""
+			},
+			{
+				"name": "audience",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). `whenUnknown` is therefore the important setting: it decides what happens for a first-time commenter.",
+							"properties": {
+								"followerStatus": {
+									"type": "string",
+									"enum": [
+										"any",
+										"follower",
+										"non_follower"
+									],
+									"default": "any"
+								},
+								"minFollowerCount": {
+									"type": "integer",
+									"minimum": 0,
+									"description": "Omit for no size rule. Zero is stored as absent."
+								},
+								"whenUnknown": {
+									"type": "string",
+									"enum": [
+										"send",
+										"skip",
+										"verify"
+									],
+									"default": "send",
+									"description": "What to do when Instagram will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - send `followGate.message` with a confirm button. Tapping it is a message, which grants consent, so the re-check on the tap resolves and the real DM (or `followGate.notFollowingMessage`) follows automatically."
+								}
+							}
+						}
+					],
+					"nullable": true
+				},
+				"description": ""
+			},
+			{
+				"name": "followGate",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "Copy for the follow gate. Sensible defaults are used for any field left empty.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Follow us to get the link, then tap the button below 👇"
+								},
+								"buttonLabel": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 20,
+									"default": "I'm following"
+								},
+								"notFollowingMessage": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 1000,
+									"description": "Sent to a commenter we know does not follow (followerStatus=follower). Omit to stay silent on a keyword comment; a confirm tap always gets an answer."
+								}
+							}
+						}
+					],
+					"nullable": true
+				},
+				"description": ""
 			}
 		],
 		"bodyMode": "flat",
@@ -1865,7 +2014,9 @@ export const generatedCommands: GeneratedCommand[] = [
 			"dmDelaySeconds",
 			"commentReplyDelaySeconds",
 			"isActive",
-			"linkTracking"
+			"linkTracking",
+			"audience",
+			"followGate"
 		]
 	},
 	{
