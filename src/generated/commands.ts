@@ -1298,7 +1298,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "object",
 					"additionalProperties": false,
-					"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). `whenUnknown` is therefore the important setting: it decides what happens for a first-time commenter.",
+					"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). So any rule here sends the Opening DM first (`openingDm`, defaults when unset) and checks the person when they tap its button. Story replies are already messages and are checked right away.",
 					"properties": {
 						"followerStatus": {
 							"type": "string",
@@ -1322,11 +1322,43 @@ export const generatedCommands: GeneratedCommand[] = [
 								"verify"
 							],
 							"default": "send",
-							"description": "What to do when Instagram will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - send `followGate.message` with a confirm button. Tapping it is a message, which grants consent, so the re-check on the tap resolves and the real DM (or `followGate.notFollowingMessage`) follows automatically."
+							"description": "Applies after the Opening DM tap, when Instagram still will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - treat them as not following, so followerStatus=follower sends the follow request (`followGate.message`); tapping its button re-checks."
 						}
 					}
 				},
-				"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). `whenUnknown` is therefore the important setting: it decides what happens for a first-time commenter."
+				"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). So any rule here sends the Opening DM first (`openingDm`, defaults when unset) and checks the person when they tap its button. Story replies are already messages and are checked right away."
+			},
+			{
+				"name": "openingDm",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule: when `audience` filters by followers and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Hey! Thanks so much for your interest 😊\n\nTap below and I'll send you the link ✨",
+									"description": "Trimmed. Empty or omitted uses the default."
+								},
+								"buttonLabel": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 20,
+									"default": "Send me the link",
+									"description": "Trimmed. Empty or omitted uses the default."
+								}
+							}
+						}
+					],
+					"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers."
+				},
+				"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers."
 			},
 			{
 				"name": "followGate",
@@ -1335,29 +1367,32 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "object",
 					"additionalProperties": false,
-					"description": "Copy for the follow gate. Sensible defaults are used for any field left empty.",
+					"description": "Copy for the follow request (audience.followerStatus=follower). Sensible defaults are used for any field left empty.",
 					"properties": {
 						"message": {
 							"type": "string",
 							"minLength": 1,
 							"maxLength": 640,
-							"default": "Follow us to get the link, then tap the button below 👇"
+							"default": "Follow us to get the link, then tap the button below 👇",
+							"description": "The follow request sent after the Opening DM tap to people who do not follow yet."
 						},
 						"buttonLabel": {
 							"type": "string",
 							"minLength": 1,
 							"maxLength": 20,
-							"default": "I'm following"
+							"default": "I'm following",
+							"description": "Label of the button on the follow request. Tapping it re-checks the follow."
 						},
 						"notFollowingMessage": {
 							"type": "string",
 							"minLength": 1,
 							"maxLength": 1000,
-							"description": "Sent to a commenter we know does not follow (followerStatus=follower). Omit to stay silent on a keyword comment; a confirm tap always gets an answer."
+							"description": "Sent when they tap the follow request button but still do not follow. The button stays, so they can follow and tap again.",
+							"default": "Looks like you're not following yet. Follow us, then tap the button again."
 						}
 					}
 				},
-				"description": "Copy for the follow gate. Sensible defaults are used for any field left empty."
+				"description": "Copy for the follow request (audience.followerStatus=follower). Sensible defaults are used for any field left empty."
 			}
 		],
 		"bodyMode": "flat",
@@ -1384,6 +1419,7 @@ export const generatedCommands: GeneratedCommand[] = [
 			"isActive",
 			"linkTracking",
 			"audience",
+			"openingDm",
 			"followGate"
 		]
 	},
@@ -1923,7 +1959,7 @@ export const generatedCommands: GeneratedCommand[] = [
 						{
 							"type": "object",
 							"additionalProperties": false,
-							"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). `whenUnknown` is therefore the important setting: it decides what happens for a first-time commenter.",
+							"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). So any rule here sends the Opening DM first (`openingDm`, defaults when unset) and checks the person when they tap its button. Story replies are already messages and are checked right away.",
 							"properties": {
 								"followerStatus": {
 									"type": "string",
@@ -1947,7 +1983,7 @@ export const generatedCommands: GeneratedCommand[] = [
 										"verify"
 									],
 									"default": "send",
-									"description": "What to do when Instagram will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - send `followGate.message` with a confirm button. Tapping it is a message, which grants consent, so the re-check on the tap resolves and the real DM (or `followGate.notFollowingMessage`) follows automatically."
+									"description": "Applies after the Opening DM tap, when Instagram still will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - treat them as not following, so followerStatus=follower sends the follow request (`followGate.message`); tapping its button re-checks."
 								}
 							}
 						}
@@ -1955,6 +1991,39 @@ export const generatedCommands: GeneratedCommand[] = [
 					"nullable": true
 				},
 				"description": ""
+			},
+			{
+				"name": "openingDm",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule: when `audience` filters by followers and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Hey! Thanks so much for your interest 😊\n\nTap below and I'll send you the link ✨",
+									"description": "Trimmed. Empty or omitted uses the default."
+								},
+								"buttonLabel": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 20,
+									"default": "Send me the link",
+									"description": "Trimmed. Empty or omitted uses the default."
+								}
+							}
+						}
+					],
+					"nullable": true,
+					"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults."
+				},
+				"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults."
 			},
 			{
 				"name": "followGate",
@@ -1965,25 +2034,28 @@ export const generatedCommands: GeneratedCommand[] = [
 						{
 							"type": "object",
 							"additionalProperties": false,
-							"description": "Copy for the follow gate. Sensible defaults are used for any field left empty.",
+							"description": "Copy for the follow request (audience.followerStatus=follower). Sensible defaults are used for any field left empty.",
 							"properties": {
 								"message": {
 									"type": "string",
 									"minLength": 1,
 									"maxLength": 640,
-									"default": "Follow us to get the link, then tap the button below 👇"
+									"default": "Follow us to get the link, then tap the button below 👇",
+									"description": "The follow request sent after the Opening DM tap to people who do not follow yet."
 								},
 								"buttonLabel": {
 									"type": "string",
 									"minLength": 1,
 									"maxLength": 20,
-									"default": "I'm following"
+									"default": "I'm following",
+									"description": "Label of the button on the follow request. Tapping it re-checks the follow."
 								},
 								"notFollowingMessage": {
 									"type": "string",
 									"minLength": 1,
 									"maxLength": 1000,
-									"description": "Sent to a commenter we know does not follow (followerStatus=follower). Omit to stay silent on a keyword comment; a confirm tap always gets an answer."
+									"description": "Sent when they tap the follow request button but still do not follow. The button stays, so they can follow and tap again.",
+									"default": "Looks like you're not following yet. Follow us, then tap the button again."
 								}
 							}
 						}
@@ -2016,6 +2088,7 @@ export const generatedCommands: GeneratedCommand[] = [
 			"isActive",
 			"linkTracking",
 			"audience",
+			"openingDm",
 			"followGate"
 		]
 	},
