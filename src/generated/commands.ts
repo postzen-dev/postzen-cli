@@ -236,7 +236,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "get",
 		"summary": "Get post analytics",
-		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics.",
+		"description": "Returns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics.",
 		"method": "GET",
 		"pathTemplate": "/v1/analytics",
 		"positionals": [],
@@ -331,7 +331,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range start. Accepts `YYYY-MM-DD` or an ISO 8601 datetime. Defaults to 90 days before `toDate`."
+				"description": "Inclusive range start. Defaults to 90 days before `toDate`."
 			},
 			{
 				"name": "toDate",
@@ -350,7 +350,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range end. Accepts `YYYY-MM-DD` or an ISO 8601 datetime. Defaults to the current time."
+				"description": "Inclusive range end. Defaults to the current time."
 			},
 			{
 				"name": "limit",
@@ -420,7 +420,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "get-best-time-to-post",
 		"summary": "Get the best times to post",
-		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns historical engagement slots grouped by UTC day of week and hour, ordered by average engagement descending.",
+		"description": "Returns historical engagement slots grouped by UTC day of week and hour, ordered by average engagement descending. Hours are UTC; day_of_week uses 0 = Sunday through 6 = Saturday.",
 		"method": "GET",
 		"pathTemplate": "/v1/analytics/best-time",
 		"positionals": [],
@@ -488,7 +488,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "get-daily-metrics",
 		"summary": "Get daily analytics metrics",
-		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns daily aggregate metrics and a per-platform breakdown. Publish attribution assigns lifetime metrics to the post's publish date; received attribution assigns metric deltas to the day they were observed.",
+		"description": "Returns daily aggregate metrics and a per-platform breakdown. Publish attribution assigns lifetime metrics to the post's publish date; received attribution assigns metric deltas to the day they were observed.",
 		"method": "GET",
 		"pathTemplate": "/v1/analytics/daily-metrics",
 		"positionals": [],
@@ -608,7 +608,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "get-follower-stats",
 		"summary": "Get follower statistics",
-		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns follower history and growth for connected accounts at daily, weekly, or monthly granularity.",
+		"description": "Returns follower history and growth for connected accounts at daily, weekly, or monthly granularity.",
 		"method": "GET",
 		"pathTemplate": "/v1/accounts/follower-stats",
 		"positionals": [],
@@ -693,7 +693,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "get-post-timeline",
 		"summary": "Get a post analytics timeline",
-		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns one daily row per platform for a PostZen post, imported external post, or platform post id.",
+		"description": "Returns one daily row per platform for a PostZen post, imported external post, or platform post id.",
 		"method": "GET",
 		"pathTemplate": "/v1/analytics/post-timeline",
 		"positionals": [],
@@ -754,7 +754,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "sync-external-posts",
 		"summary": "Synchronize external posts",
-		"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nFetches an account's latest posts published directly on its platform. Supplying `url` or `postId` searches for a specific post. Requests made within the per-account debounce window return cached results with `synced.skipped` set to true.",
+		"description": "Fetches an account's latest posts published directly on its platform. Supplying `url` or `postId` searches for a specific post. Requests made within the per-account debounce window return cached results with `synced.skipped` set to true.",
 		"method": "POST",
 		"pathTemplate": "/v1/posts/sync-external",
 		"positionals": [],
@@ -4075,9 +4075,53 @@ export const generatedCommands: GeneratedCommand[] = [
 													"everyone",
 													"accountsYouFollow",
 													"mentionedOnly"
-												]
+												],
+												"description": "Who can reply. Omit to let everyone reply. When threadItems is set, applies only to the first post."
+											},
+											"threadItems": {
+												"type": "array",
+												"minItems": 1,
+												"maxItems": 25,
+												"description": "Publish this target as a thread of 1–25 posts, in order. The first item is the root post and each later item is published as a reply to the previous one. When set, the target's `content`/`customContent` and the post's top-level `mediaItems` are not published to Threads; they still apply to the post's other targets. `platformPostUrl` on the result is the root post's URL. A one-item thread publishes like a plain post. Each item supports up to 500 characters and 10 images/videos. `replyControl` applies only to the first post.",
+												"items": {
+													"type": "object",
+													"description": "One post in a Threads thread. Each item needs text, media, or both.",
+													"required": [
+														"content"
+													],
+													"properties": {
+														"content": {
+															"type": "string",
+															"maxLength": 500,
+															"description": "Text of this post in the thread, up to 500 characters. May be empty only when the item has `mediaItems`."
+														},
+														"mediaItems": {
+															"type": "array",
+															"maxItems": 10,
+															"description": "Up to 10 images/videos attached to this post, in the same format as the post's top-level `mediaItems`. Images (including GIF media) and videos can be mixed within an item.",
+															"items": {
+																"type": "object",
+																"required": [
+																	"url"
+																],
+																"properties": {
+																	"url": {
+																		"type": "string",
+																		"format": "uri",
+																		"description": "PostZen-hosted `publicUrl` from `POST /v1/media/presign`, or an external image/video URL. External URLs are downloaded and re-hosted by PostZen; they must resolve to an image or video (PDF is not supported) of at most 100 MB."
+																	},
+																	"title": {
+																		"type": "string",
+																		"description": "Optional alt text/title for the media item."
+																	}
+																}
+															}
+														}
+													}
+												}
 											}
-										}
+										},
+										"description": "Threads target settings. Set `threadItems` to publish a chain of 1–25 posts, each with up to 500 characters and 10 images/videos. The first item is the root and each later item replies to the previous one. When set, the target's `content`/`customContent` and the post's top-level `mediaItems` are not published to Threads; they still apply to other targets. `replyControl` applies only to the first post."
 									},
 									{
 										"type": "object",
@@ -4911,9 +4955,53 @@ export const generatedCommands: GeneratedCommand[] = [
 													"everyone",
 													"accountsYouFollow",
 													"mentionedOnly"
-												]
+												],
+												"description": "Who can reply. Omit to let everyone reply. When threadItems is set, applies only to the first post."
+											},
+											"threadItems": {
+												"type": "array",
+												"minItems": 1,
+												"maxItems": 25,
+												"description": "Publish this target as a thread of 1–25 posts, in order. The first item is the root post and each later item is published as a reply to the previous one. When set, the target's `content`/`customContent` and the post's top-level `mediaItems` are not published to Threads; they still apply to the post's other targets. `platformPostUrl` on the result is the root post's URL. A one-item thread publishes like a plain post. Each item supports up to 500 characters and 10 images/videos. `replyControl` applies only to the first post.",
+												"items": {
+													"type": "object",
+													"description": "One post in a Threads thread. Each item needs text, media, or both.",
+													"required": [
+														"content"
+													],
+													"properties": {
+														"content": {
+															"type": "string",
+															"maxLength": 500,
+															"description": "Text of this post in the thread, up to 500 characters. May be empty only when the item has `mediaItems`."
+														},
+														"mediaItems": {
+															"type": "array",
+															"maxItems": 10,
+															"description": "Up to 10 images/videos attached to this post, in the same format as the post's top-level `mediaItems`. Images (including GIF media) and videos can be mixed within an item.",
+															"items": {
+																"type": "object",
+																"required": [
+																	"url"
+																],
+																"properties": {
+																	"url": {
+																		"type": "string",
+																		"format": "uri",
+																		"description": "PostZen-hosted `publicUrl` from `POST /v1/media/presign`, or an external image/video URL. External URLs are downloaded and re-hosted by PostZen; they must resolve to an image or video (PDF is not supported) of at most 100 MB."
+																	},
+																	"title": {
+																		"type": "string",
+																		"description": "Optional alt text/title for the media item."
+																	}
+																}
+															}
+														}
+													}
+												}
 											}
-										}
+										},
+										"description": "Threads target settings. Set `threadItems` to publish a chain of 1–25 posts, each with up to 500 characters and 10 images/videos. The first item is the root and each later item replies to the previous one. When set, the target's `content`/`customContent` and the post's top-level `mediaItems` are not published to Threads; they still apply to other targets. `replyControl` applies only to the first post."
 									},
 									{
 										"type": "object",

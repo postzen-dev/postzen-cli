@@ -4507,7 +4507,7 @@
 				],
 				"operationId": "getAnalytics",
 				"summary": "Get post analytics",
-				"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics.",
+				"description": "Returns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics.",
 				"security": [
 					{
 						"bearerAuth": []
@@ -4567,7 +4567,7 @@
 					{
 						"name": "fromDate",
 						"in": "query",
-						"description": "Inclusive range start. Accepts `YYYY-MM-DD` or an ISO 8601 datetime. Defaults to 90 days before `toDate`.",
+						"description": "Inclusive range start. Defaults to 90 days before `toDate`.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -4575,7 +4575,7 @@
 					{
 						"name": "toDate",
 						"in": "query",
-						"description": "Inclusive range end. Accepts `YYYY-MM-DD` or an ISO 8601 datetime. Defaults to the current time.",
+						"description": "Inclusive range end. Defaults to the current time.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -4712,7 +4712,7 @@
 				],
 				"operationId": "getPostTimeline",
 				"summary": "Get a post analytics timeline",
-				"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns one daily row per platform for a PostZen post, imported external post, or platform post id.",
+				"description": "Returns one daily row per platform for a PostZen post, imported external post, or platform post id.",
 				"security": [
 					{
 						"bearerAuth": []
@@ -4794,7 +4794,7 @@
 				],
 				"operationId": "getDailyMetrics",
 				"summary": "Get daily analytics metrics",
-				"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns daily aggregate metrics and a per-platform breakdown. Publish attribution assigns lifetime metrics to the post's publish date; received attribution assigns metric deltas to the day they were observed.",
+				"description": "Returns daily aggregate metrics and a per-platform breakdown. Publish attribution assigns lifetime metrics to the post's publish date; received attribution assigns metric deltas to the day they were observed.",
 				"security": [
 					{
 						"bearerAuth": []
@@ -4912,7 +4912,7 @@
 				],
 				"operationId": "getBestTimeToPost",
 				"summary": "Get the best times to post",
-				"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns historical engagement slots grouped by UTC day of week and hour, ordered by average engagement descending.",
+				"description": "Returns historical engagement slots grouped by UTC day of week and hour, ordered by average engagement descending. Hours are UTC; day_of_week uses 0 = Sunday through 6 = Saturday.",
 				"security": [
 					{
 						"bearerAuth": []
@@ -5001,7 +5001,7 @@
 				],
 				"operationId": "getFollowerStats",
 				"summary": "Get follower statistics",
-				"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nReturns follower history and growth for connected accounts at daily, weekly, or monthly granularity.",
+				"description": "Returns follower history and growth for connected accounts at daily, weekly, or monthly granularity.",
 				"security": [
 					{
 						"bearerAuth": []
@@ -5105,7 +5105,7 @@
 				],
 				"operationId": "syncExternalPosts",
 				"summary": "Synchronize external posts",
-				"description": "> **Coming soon** — Analytics endpoints are being rolled out and may return empty data until the rollout completes.\n\nFetches an account's latest posts published directly on its platform. Supplying `url` or `postId` searches for a specific post. Requests made within the per-account debounce window return cached results with `synced.skipped` set to true.",
+				"description": "Fetches an account's latest posts published directly on its platform. Supplying `url` or `postId` searches for a specific post. Requests made within the per-account debounce window return cached results with `synced.skipped` set to true.",
 				"security": [
 					{
 						"bearerAuth": []
@@ -8356,6 +8356,7 @@
 			},
 			"AnalyticsMetricTotals": {
 				"type": "object",
+				"description": "The eight normalized metrics returned for every platform. A platform that reports a single view count returns it in both `views` and `impressions`. A metric the platform does not report is returned as `0`, so check the per-platform coverage in the API reference before reading a zero as no activity. `reach` is currently reported for Instagram only.",
 				"required": [
 					"impressions",
 					"reach",
@@ -8407,7 +8408,7 @@
 						"properties": {
 							"engagementRate": {
 								"type": "number",
-								"description": "Interaction count divided by impressions, multiplied by 100 and rounded to two decimals."
+								"description": "Interactions (likes + comments + shares + saves + clicks) divided by impressions, multiplied by 100 and rounded to two decimals. On platforms that report no impressions, such as Bluesky, the value is the interaction count multiplied by 100 and is not a rate."
 							},
 							"lastUpdated": {
 								"type": [
@@ -8647,7 +8648,7 @@
 					},
 					"truncated": {
 						"type": "boolean",
-						"description": "True when the requested window contained more posts than a single response can scan. `pagination.total` and `overview` then describe the most recent slice of the window rather than all of it; narrow `dateFrom`/`dateTo`, `accountId`, or `platform` to get exact totals."
+						"description": "True when the requested window contained more posts than a single response can scan. `pagination.total` and `overview` then describe the most recent slice of the window rather than all of it; narrow `fromDate`/`toDate`, `accountId`, or `platform` to get exact totals."
 					}
 				}
 			},
@@ -8785,7 +8786,8 @@
 			"BestTimeResponse": {
 				"type": "object",
 				"required": [
-					"slots"
+					"slots",
+					"timezone"
 				],
 				"properties": {
 					"slots": {
@@ -8796,7 +8798,8 @@
 								"day_of_week",
 								"hour",
 								"avg_engagement",
-								"post_count"
+								"post_count",
+								"day_name"
 							],
 							"properties": {
 								"day_of_week": {
@@ -8808,16 +8811,37 @@
 								"hour": {
 									"type": "integer",
 									"minimum": 0,
-									"maximum": 23
+									"maximum": 23,
+									"description": "Hour of day in UTC (0–23)."
 								},
 								"avg_engagement": {
 									"type": "number"
 								},
 								"post_count": {
 									"type": "number"
+								},
+								"day_name": {
+									"type": "string",
+									"enum": [
+										"Sunday",
+										"Monday",
+										"Tuesday",
+										"Wednesday",
+										"Thursday",
+										"Friday",
+										"Saturday"
+									],
+									"description": "UTC weekday name corresponding to day_of_week (0 = Sunday)."
 								}
 							}
 						}
+					},
+					"timezone": {
+						"type": "string",
+						"enum": [
+							"UTC"
+						],
+						"description": "Timezone used for every slot weekday and hour."
 					}
 				}
 			},
@@ -11007,7 +11031,40 @@
 							"everyone",
 							"accountsYouFollow",
 							"mentionedOnly"
-						]
+						],
+						"description": "Who can reply. Omit to let everyone reply. When threadItems is set, applies only to the first post."
+					},
+					"threadItems": {
+						"type": "array",
+						"minItems": 1,
+						"maxItems": 25,
+						"description": "Publish this target as a thread of 1–25 posts, in order. The first item is the root post and each later item is published as a reply to the previous one. When set, the target's `content`/`customContent` and the post's top-level `mediaItems` are not published to Threads; they still apply to the post's other targets. `platformPostUrl` on the result is the root post's URL. A one-item thread publishes like a plain post. Each item supports up to 500 characters and 10 images/videos. `replyControl` applies only to the first post.",
+						"items": {
+							"$ref": "#/components/schemas/ThreadsThreadItem"
+						}
+					}
+				},
+				"description": "Threads target settings. Set `threadItems` to publish a chain of 1–25 posts, each with up to 500 characters and 10 images/videos. The first item is the root and each later item replies to the previous one. When set, the target's `content`/`customContent` and the post's top-level `mediaItems` are not published to Threads; they still apply to other targets. `replyControl` applies only to the first post."
+			},
+			"ThreadsThreadItem": {
+				"type": "object",
+				"description": "One post in a Threads thread. Each item needs text, media, or both.",
+				"required": [
+					"content"
+				],
+				"properties": {
+					"content": {
+						"type": "string",
+						"maxLength": 500,
+						"description": "Text of this post in the thread, up to 500 characters. May be empty only when the item has `mediaItems`."
+					},
+					"mediaItems": {
+						"type": "array",
+						"maxItems": 10,
+						"description": "Up to 10 images/videos attached to this post, in the same format as the post's top-level `mediaItems`. Images (including GIF media) and videos can be mixed within an item.",
+						"items": {
+							"$ref": "#/components/schemas/PostMediaItem"
+						}
 					}
 				}
 			},
@@ -11285,7 +11342,8 @@
 					"status",
 					"scheduledFor",
 					"timezone",
-					"platforms"
+					"platforms",
+					"mediaItems"
 				],
 				"properties": {
 					"_id": {
@@ -11324,6 +11382,25 @@
 						"type": "array",
 						"items": {
 							"$ref": "#/components/schemas/ApiPostPlatformResult"
+						}
+					},
+					"mediaItems": {
+						"type": "array",
+						"description": "Attached media in stored order, with resolved hosted URLs and optional titles (alt text). Always present; empty when there is no available media.",
+						"items": {
+							"type": "object",
+							"required": [
+								"url"
+							],
+							"properties": {
+								"url": {
+									"type": "string",
+									"format": "uri"
+								},
+								"title": {
+									"type": "string"
+								}
+							}
 						}
 					}
 				}
@@ -11367,7 +11444,7 @@
 					},
 					"settings": {
 						"$ref": "#/components/schemas/PostPlatformSettings",
-						"description": "The platform settings this target was created with, echoed back in the same shape the create request accepts. For X threads, each `threadItems[].mediaItems` entry carries the hosted `url` of the stored media."
+						"description": "The platform settings this target was created with, echoed back in the same shape the create request accepts. For X and Threads threads, each `threadItems[].mediaItems` entry carries the hosted `url` of the stored media."
 					}
 				}
 			},
