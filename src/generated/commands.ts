@@ -3896,7 +3896,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "create",
 		"summary": "Create a post",
-		"description": "Creates a draft, scheduled post, or immediate post. This endpoint requires a read-write API key. Provide exactly one creation mode: `publishNow`, `scheduledFor`, or `isDraft`.",
+		"description": "Creates a draft, scheduled post, or immediate post. This endpoint requires a read-write API key. Provide exactly one creation mode: `publishNow`, `scheduledFor`, or `isDraft`. The accounts in `platforms` can belong to different profiles; an API key limited to selected profiles must have access to the profile of every account.",
 		"method": "POST",
 		"pathTemplate": "/v1/posts",
 		"positionals": [],
@@ -4193,12 +4193,12 @@ export const generatedCommands: GeneratedCommand[] = [
 											"organizationUrn": {
 												"type": "string",
 												"pattern": "^(urn:li:organization:[0-9]+|[0-9]+)$",
-												"description": "Publish as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes — reconnect the account if it was connected before company-page posting was enabled. Also accepted as `organizationId` / `organization_id`."
+												"description": "Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access, and LinkedIn rejects posts that set this today, so leave it unset. Once available, this publishes as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes. Also accepted as `organizationId` / `organization_id`."
 											},
 											"firstComment": {
 												"type": "string",
 												"maxLength": 1250,
-												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it."
+												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it. Not available yet on LinkedIn: first comments wait on the same LinkedIn approval as company-page posting, so today the post publishes without the comment."
 											},
 											"disableLinkPreview": {
 												"type": "boolean",
@@ -4215,7 +4215,7 @@ export const generatedCommands: GeneratedCommand[] = [
 													"pattern": "^[A-Z]{2}$"
 												},
 												"maxItems": 25,
-												"description": "Restrict who sees the post to these countries, as uppercase ISO 3166-1 alpha-2 codes (for example `[\"US\", \"CA\"]`). Up to 25 countries, and organization posts only — supplying this without `organizationUrn` is a validation error."
+												"description": "Restrict who sees the post to these countries, as uppercase ISO 3166-1 alpha-2 codes (for example `[\"US\", \"CA\"]`). Up to 25 countries, and organization posts only — supplying this without `organizationUrn` is a validation error. Not available yet, because it requires `organizationUrn`."
 											}
 										}
 									},
@@ -4443,9 +4443,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+					"description": "Profile id whose queue places the post. It can be any profile the API key can access and does not have to hold the target accounts; it is required when the accounts span more than one profile. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
 				},
-				"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+				"description": "Profile id whose queue places the post. It can be any profile the API key can access and does not have to hold the target accounts; it is required when the accounts span more than one profile. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
 			},
 			{
 				"name": "queueId",
@@ -4522,7 +4522,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "get",
 		"summary": "Get a post",
-		"description": "Returns one post when it belongs to a profile available to the API key. Missing and inaccessible posts both return 404.",
+		"description": "Returns one post when the API key can access the profile of every account the post targets. Missing and inaccessible posts both return 404.",
 		"method": "GET",
 		"pathTemplate": "/v1/posts/{postId}",
 		"positionals": [
@@ -4543,7 +4543,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "list",
 		"summary": "List posts",
-		"description": "Returns posts created for the profiles available to the API key, newest first. Read-only and read-write API keys are accepted. Published posts include a `platformPostUrl` for each published platform target. Results are capped to the 1000 most recent matching posts.",
+		"description": "Returns posts the API key can access, newest first. A post's profiles are the profiles of its target accounts, and a key limited to selected profiles only sees posts whose accounts all sit in profiles it can access. Read-only and read-write API keys are accepted. Published posts include a `platformPostId` and `platformPostUrl` for each published platform target. Results are capped to the 1000 most recent matching posts.",
 		"method": "GET",
 		"pathTemplate": "/v1/posts",
 		"positionals": [],
@@ -4555,7 +4555,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "Filter posts by profile id."
+				"description": "Return posts that target at least one account in this profile. A post whose accounts span several profiles is listed under each of them."
 			},
 			{
 				"name": "accountId",
@@ -4673,7 +4673,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "list-comments",
 		"summary": "List comments on a LinkedIn post",
-		"description": "Returns the comments LinkedIn holds for a post published through PostZen. LinkedIn only, and organization (company page) posts only. The post's LinkedIn connection must hold `r_organization_social_feed`, which LinkedIn ships with its Community Management API product — reconnect the account if it was connected before company-page posting was enabled. A personal (member) post always returns `403 personalPostUnsupported`: reading a member's own comments and reactions needs `r_member_social_feed`, which LinkedIn grants to select developers only. Read-only and read-write API keys are accepted.",
+		"description": "Returns the comments LinkedIn holds for a post published through PostZen. LinkedIn only, and organization (company page) posts only. The post's LinkedIn connection must hold `r_organization_social_feed`, which LinkedIn ships with its Community Management API product. Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access, and until then this endpoint returns `403 orgScopesDisabled`. A personal (member) post always returns `403 personalPostUnsupported`: reading a member's own comments and reactions needs `r_member_social_feed`, which LinkedIn grants to select developers only. Read-only and read-write API keys are accepted.",
 		"method": "GET",
 		"pathTemplate": "/v1/posts/{postId}/comments",
 		"positionals": [
@@ -4725,7 +4725,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "list-reactions",
 		"summary": "List reactions on a LinkedIn post",
-		"description": "Returns the individual reactions LinkedIn holds for a post published through PostZen, plus a per-type count of the returned page. LinkedIn only, and organization (company page) posts only. The post's LinkedIn connection must hold `r_organization_social_feed`, which LinkedIn ships with its Community Management API product — reconnect the account if it was connected before company-page posting was enabled. A personal (member) post always returns `403 personalPostUnsupported`: reading a member's own comments and reactions needs `r_member_social_feed`, which LinkedIn grants to select developers only. Read-only and read-write API keys are accepted.",
+		"description": "Returns the individual reactions LinkedIn holds for a post published through PostZen, plus a per-type count of the returned page. LinkedIn only, and organization (company page) posts only. The post's LinkedIn connection must hold `r_organization_social_feed`, which LinkedIn ships with its Community Management API product. Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access, and until then this endpoint returns `403 orgScopesDisabled`. A personal (member) post always returns `403 personalPostUnsupported`: reading a member's own comments and reactions needs `r_member_social_feed`, which LinkedIn grants to select developers only. Read-only and read-write API keys are accepted.",
 		"method": "GET",
 		"pathTemplate": "/v1/posts/{postId}/reactions",
 		"positionals": [
@@ -4777,7 +4777,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "update",
 		"summary": "Update a post",
-		"description": "Updates an editable post. Every body field is optional; omitted fields keep their current values, and omitting all timing fields keeps the current scheduling and draft status. At most one of `publishNow`, `scheduledFor`, `isDraft`, or `queuedFromProfile` may select a new timing mode.",
+		"description": "Updates an editable post. Every body field is optional; omitted fields keep their current values, and omitting all timing fields keeps the current scheduling and draft status. At most one of `publishNow`, `scheduledFor`, `isDraft`, or `queuedFromProfile` may select a new timing mode. Accounts in `platforms` can belong to different profiles; the API key needs access to all of them.",
 		"method": "PUT",
 		"pathTemplate": "/v1/posts/{postId}",
 		"positionals": [
@@ -5073,12 +5073,12 @@ export const generatedCommands: GeneratedCommand[] = [
 											"organizationUrn": {
 												"type": "string",
 												"pattern": "^(urn:li:organization:[0-9]+|[0-9]+)$",
-												"description": "Publish as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes — reconnect the account if it was connected before company-page posting was enabled. Also accepted as `organizationId` / `organization_id`."
+												"description": "Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access, and LinkedIn rejects posts that set this today, so leave it unset. Once available, this publishes as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes. Also accepted as `organizationId` / `organization_id`."
 											},
 											"firstComment": {
 												"type": "string",
 												"maxLength": 1250,
-												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it."
+												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it. Not available yet on LinkedIn: first comments wait on the same LinkedIn approval as company-page posting, so today the post publishes without the comment."
 											},
 											"disableLinkPreview": {
 												"type": "boolean",
@@ -5095,7 +5095,7 @@ export const generatedCommands: GeneratedCommand[] = [
 													"pattern": "^[A-Z]{2}$"
 												},
 												"maxItems": 25,
-												"description": "Restrict who sees the post to these countries, as uppercase ISO 3166-1 alpha-2 codes (for example `[\"US\", \"CA\"]`). Up to 25 countries, and organization posts only — supplying this without `organizationUrn` is a validation error."
+												"description": "Restrict who sees the post to these countries, as uppercase ISO 3166-1 alpha-2 codes (for example `[\"US\", \"CA\"]`). Up to 25 countries, and organization posts only — supplying this without `organizationUrn` is a validation error. Not available yet, because it requires `organizationUrn`."
 											}
 										}
 									},
@@ -5323,9 +5323,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+					"description": "Profile id whose queue places the post. It can be any profile the API key can access and does not have to hold the target accounts; it is required when the accounts span more than one profile. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
 				},
-				"description": "Profile id whose queue places the post. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
+				"description": "Profile id whose queue places the post. It can be any profile the API key can access and does not have to hold the target accounts; it is required when the accounts span more than one profile. PostZen assigns the next free slot and returns it as `scheduledFor`. Do not call `GET /v1/queue/next-slot` and pass the result as `scheduledFor`: the slot is only claimed by the create call itself, so a fetched slot can be taken by another request before yours arrives, and the post would be scheduled outside the queue."
 			},
 			{
 				"name": "queueId",
