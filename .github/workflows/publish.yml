@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch: # manual re-run button
 
+permissions:
+  contents: read
+  id-token: write # npm trusted publishing (OIDC)
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -15,6 +19,9 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
+
+      - name: Use npm 11 (trusted publishing needs >= 11.5.1)
+        run: npm install -g npm@11
 
       - name: Install dependencies
         run: npm ci
@@ -27,17 +34,12 @@ jobs:
 
       - name: Publish to npm
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "NPM_TOKEN secret not set — skipping publish."
-            exit 0
-          fi
           LOCAL="$(node -p "require('./package.json').version")"
           PUBLISHED="$(npm view @postzen/cli version 2>/dev/null || echo 'none')"
           echo "local=$LOCAL published=$PUBLISHED"
           if [ "$LOCAL" != "$PUBLISHED" ]; then
+            # Authenticates through npm trusted publishing (OIDC); no NPM_TOKEN.
             npm publish --access public
           else
             echo "Version $LOCAL already published — skipping."
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
