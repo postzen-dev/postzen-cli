@@ -3896,7 +3896,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "posts",
 		"action": "create",
 		"summary": "Create a post",
-		"description": "Creates a draft, scheduled post, or immediate post. This endpoint requires a read-write API key. Provide exactly one creation mode: `publishNow`, `scheduledFor`, or `isDraft`. The accounts in `platforms` can belong to different profiles; an API key limited to selected profiles must have access to the profile of every account.",
+		"description": "Creates a draft, scheduled post, immediate post, or queued post. This endpoint requires a read-write API key. Provide exactly one creation mode: `publishNow`, `scheduledFor`, `isDraft`, or `queuedFromProfile` (optionally with `queueId`), which claims the next free slot in that profile's queue and returns it as `scheduledFor`. The accounts in `platforms` can belong to different profiles; an API key limited to selected profiles must have access to the profile of every account.",
 		"method": "POST",
 		"pathTemplate": "/v1/posts",
 		"positionals": [],
