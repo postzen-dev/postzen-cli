@@ -3908,7 +3908,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "Optional idempotency key. Repeating the same value returns the original post instead of creating a new one."
+				"description": "Optional idempotency key. Repeating a value that already created a post returns `200` with the original post under `existingPost` (not `post`) and the message `Post already exists for this request id`, instead of creating a new one."
 			},
 			{
 				"name": "title",
@@ -4169,7 +4169,7 @@ export const generatedCommands: GeneratedCommand[] = [
 									},
 									{
 										"type": "object",
-										"description": "LinkedIn target settings. A LinkedIn post carries exactly one media kind: no media (text only), 1–20 images, one MP4 video, or one document (PDF/DOC/DOCX/PPT/PPTX). Commentary is limited to 3,000 characters. Every key below is also accepted in `snake_case` (for example `first_comment` and `organization_urn`).",
+										"description": "LinkedIn target settings. A LinkedIn post carries exactly one media kind: no media (text only), 1–10 images (LinkedIn itself allows 20, but `mediaItems` caps at 10 items on every platform), one MP4 video, or one PDF document uploaded through `POST /v1/media/presign` with `contentType: \"application/pdf\"` (external document URLs are not ingested, and DOC/DOCX/PPT/PPTX cannot be published through the API). Commentary is limited to 3,000 characters. Every key below is also accepted in `snake_case` (for example `first_comment` and `organization_urn`).",
 										"properties": {
 											"visibility": {
 												"type": "string",
@@ -4178,7 +4178,7 @@ export const generatedCommands: GeneratedCommand[] = [
 													"CONNECTIONS"
 												],
 												"default": "PUBLIC",
-												"description": "Who can see the post. `CONNECTIONS` is only valid for a member (personal profile) post — combining it with `organizationUrn` is a validation error, because a company page has no connections."
+												"description": "Who can see the post. Matched case-insensitively; an empty string or `null` counts as unset (defaults to `PUBLIC`), and any other non-empty value returns `400` with `settings.visibility must be PUBLIC or CONNECTIONS`. `CONNECTIONS` is only valid for a member (personal profile) post — combining it with `organizationUrn` is a validation error, because a company page has no connections."
 											},
 											"videoTitle": {
 												"type": "string",
@@ -4193,12 +4193,12 @@ export const generatedCommands: GeneratedCommand[] = [
 											"organizationUrn": {
 												"type": "string",
 												"pattern": "^(urn:li:organization:[0-9]+|[0-9]+)$",
-												"description": "Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access, and LinkedIn rejects posts that set this today, so leave it unset. Once available, this publishes as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes. Also accepted as `organizationId` / `organization_id`."
+												"description": "Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access. Setting this (or an alias) today fails validation with `400` and a message prefixed with the target account's display name, for example `Jane Doe: LinkedIn company-page posting is not available yet, pending LinkedIn's approval. Remove settings.organizationUrn to publish to the connected member's profile.`, before anything is stored. On `PATCH /v1/posts/{postId}` the check applies to the `platforms` you send; omitting `platforms` leaves stored targets unchecked, and a stored company-page target fails at publish time instead. Once available, this publishes as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must hold `w_organization_social`; one that does not gets `400` with `<account name>: Reconnect this LinkedIn account to post as a company page.`. Also accepted as `organizationId` / `organization_id`."
 											},
 											"firstComment": {
 												"type": "string",
 												"maxLength": 1250,
-												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it. Not available yet on LinkedIn: first comments wait on the same LinkedIn approval as company-page posting, so today the post publishes without the comment."
+												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it. Not available yet on LinkedIn: first comments wait on the same LinkedIn approval as company-page posting. Today the comment is dropped before the post is stored (the 1,250-character limit is not applied to it), the post still publishes, and the response carries a top-level `warnings` entry prefixed with the target account's display name, for example `Jane Doe: LinkedIn first comments are not available yet; this post publishes without the comment.`"
 											},
 											"disableLinkPreview": {
 												"type": "boolean",
@@ -5049,7 +5049,7 @@ export const generatedCommands: GeneratedCommand[] = [
 									},
 									{
 										"type": "object",
-										"description": "LinkedIn target settings. A LinkedIn post carries exactly one media kind: no media (text only), 1–20 images, one MP4 video, or one document (PDF/DOC/DOCX/PPT/PPTX). Commentary is limited to 3,000 characters. Every key below is also accepted in `snake_case` (for example `first_comment` and `organization_urn`).",
+										"description": "LinkedIn target settings. A LinkedIn post carries exactly one media kind: no media (text only), 1–10 images (LinkedIn itself allows 20, but `mediaItems` caps at 10 items on every platform), one MP4 video, or one PDF document uploaded through `POST /v1/media/presign` with `contentType: \"application/pdf\"` (external document URLs are not ingested, and DOC/DOCX/PPT/PPTX cannot be published through the API). Commentary is limited to 3,000 characters. Every key below is also accepted in `snake_case` (for example `first_comment` and `organization_urn`).",
 										"properties": {
 											"visibility": {
 												"type": "string",
@@ -5058,7 +5058,7 @@ export const generatedCommands: GeneratedCommand[] = [
 													"CONNECTIONS"
 												],
 												"default": "PUBLIC",
-												"description": "Who can see the post. `CONNECTIONS` is only valid for a member (personal profile) post — combining it with `organizationUrn` is a validation error, because a company page has no connections."
+												"description": "Who can see the post. Matched case-insensitively; an empty string or `null` counts as unset (defaults to `PUBLIC`), and any other non-empty value returns `400` with `settings.visibility must be PUBLIC or CONNECTIONS`. `CONNECTIONS` is only valid for a member (personal profile) post — combining it with `organizationUrn` is a validation error, because a company page has no connections."
 											},
 											"videoTitle": {
 												"type": "string",
@@ -5073,12 +5073,12 @@ export const generatedCommands: GeneratedCommand[] = [
 											"organizationUrn": {
 												"type": "string",
 												"pattern": "^(urn:li:organization:[0-9]+|[0-9]+)$",
-												"description": "Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access, and LinkedIn rejects posts that set this today, so leave it unset. Once available, this publishes as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must have been authorized with the organization scopes. Also accepted as `organizationId` / `organization_id`."
+												"description": "Not available yet: company-page posting is waiting on LinkedIn's approval of PostZen's Community Management API access. Setting this (or an alias) today fails validation with `400` and a message prefixed with the target account's display name, for example `Jane Doe: LinkedIn company-page posting is not available yet, pending LinkedIn's approval. Remove settings.organizationUrn to publish to the connected member's profile.`, before anything is stored. On `PATCH /v1/posts/{postId}` the check applies to the `platforms` you send; omitting `platforms` leaves stored targets unchecked, and a stored company-page target fails at publish time instead. Once available, this publishes as a LinkedIn company page instead of the connected member. Accepts either the full URN (`urn:li:organization:12345`) or the bare numeric page id (`12345`), which PostZen expands to the URN. The connection must hold `w_organization_social`; one that does not gets `400` with `<account name>: Reconnect this LinkedIn account to post as a company page.`. Also accepted as `organizationId` / `organization_id`."
 											},
 											"firstComment": {
 												"type": "string",
 												"maxLength": 1250,
-												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it. Not available yet on LinkedIn: first comments wait on the same LinkedIn approval as company-page posting, so today the post publishes without the comment."
+												"description": "Comment posted by the same author immediately after the post goes live. LinkedIn's comment composer caps this at 1,250 characters, tighter than the 3,000-character post body. Best-effort: a failure here is logged and never fails the post, and the post is never retried because of it. Not available yet on LinkedIn: first comments wait on the same LinkedIn approval as company-page posting. Today the comment is dropped before the post is stored (the 1,250-character limit is not applied to it), the post still publishes, and the response carries a top-level `warnings` entry prefixed with the target account's display name, for example `Jane Doe: LinkedIn first comments are not available yet; this post publishes without the comment.`"
 											},
 											"disableLinkPreview": {
 												"type": "boolean",
