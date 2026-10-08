@@ -5993,14 +5993,28 @@ export const generatedCommands: GeneratedCommand[] = [
 					"items": {
 						"type": "string",
 						"enum": [
+							"post.scheduled",
 							"post.published",
 							"post.partially_failed",
 							"post.failed",
+							"post.cancelled",
+							"post.platform.published",
+							"post.platform.failed",
+							"post.external.created",
+							"account.connected",
 							"account.needs_reauth",
 							"account.disconnected",
+							"analytics.synced",
+							"conversation.started",
+							"message.received",
+							"message.sent",
+							"comment.received",
+							"contact.tag_added",
+							"contact.tag_removed",
+							"contact.field_changed",
 							"webhook.test"
 						],
-						"description": "Webhook event type. Receivers should tolerate additional event types in future API versions."
+						"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."
 					}
 				},
 				"description": ""
@@ -6181,14 +6195,28 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string",
 					"enum": [
+						"post.scheduled",
 						"post.published",
 						"post.partially_failed",
 						"post.failed",
+						"post.cancelled",
+						"post.platform.published",
+						"post.platform.failed",
+						"post.external.created",
+						"account.connected",
 						"account.needs_reauth",
 						"account.disconnected",
+						"analytics.synced",
+						"conversation.started",
+						"message.received",
+						"message.sent",
+						"comment.received",
+						"contact.tag_added",
+						"contact.tag_removed",
+						"contact.field_changed",
 						"webhook.test"
 					],
-					"description": "Webhook event type. Receivers should tolerate additional event types in future API versions."
+					"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."
 				},
 				"description": "Filter by webhook event type."
 			},
@@ -6345,14 +6373,28 @@ export const generatedCommands: GeneratedCommand[] = [
 					"items": {
 						"type": "string",
 						"enum": [
+							"post.scheduled",
 							"post.published",
 							"post.partially_failed",
 							"post.failed",
+							"post.cancelled",
+							"post.platform.published",
+							"post.platform.failed",
+							"post.external.created",
+							"account.connected",
 							"account.needs_reauth",
 							"account.disconnected",
+							"analytics.synced",
+							"conversation.started",
+							"message.received",
+							"message.sent",
+							"comment.received",
+							"contact.tag_added",
+							"contact.tag_removed",
+							"contact.field_changed",
 							"webhook.test"
 						],
-						"description": "Webhook event type. Receivers should tolerate additional event types in future API versions."
+						"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."
 					}
 				},
 				"description": ""
