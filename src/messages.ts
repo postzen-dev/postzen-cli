@@ -1,6 +1,6 @@
 // Shared user-facing copy.
 
-export const DASHBOARD_KEYS_URL = "https://app.postzen.dev/api-keys";
+export const DASHBOARD_KEYS_URL = "https://app.postzen.dev/api-keys?utm_source=cli&utm_medium=tool_result&utm_campaign=postzen-cli";
 
 export const MISSING_KEY_MESSAGE =
 	"No PostZen API key found. Run `postzen auth:set --key pzn_live_...` to save one, " +

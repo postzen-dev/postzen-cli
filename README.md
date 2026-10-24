@@ -23,7 +23,7 @@ Zero runtime dependencies; requires Node 20+.
 
 ## Quick Start
 
-1. Save your API key ([create one here](https://app.postzen.dev/api-keys)):
+1. Save your API key ([create one here](https://app.postzen.dev/api-keys?utm_source=npm&utm_medium=readme&utm_campaign=postzen-cli)):
 
 ```bash
 postzen auth:set --key pzn_live_...
@@ -48,7 +48,7 @@ postzen posts:create \
 
 ### API key
 
-Create an API key on the [API Keys page](https://app.postzen.dev/api-keys) and save it:
+Create an API key on the [API Keys page](https://app.postzen.dev/api-keys?utm_source=npm&utm_medium=readme&utm_campaign=postzen-cli) and save it:
 
 ```bash
 postzen auth:set --key pzn_live_...

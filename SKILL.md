@@ -6,7 +6,7 @@ homepage: https://docs.postzen.dev
 tags: [social-media, scheduling, publishing, instagram, x, twitter, tiktok, linkedin, facebook, youtube, threads, pinterest]
 metadata:
   env:
-    - POSTZEN_API_KEY (required) - API key from https://app.postzen.dev/api-keys
+    - POSTZEN_API_KEY (required) - API key from https://app.postzen.dev/api-keys?utm_source=npm&utm_medium=skill&utm_campaign=postzen-cli
     - POSTZEN_API_URL (optional) - Defaults to https://api.postzen.dev
 ---
 
@@ -171,7 +171,7 @@ postzen posts:create \
 Errors arrive as `{"error":{"status":...}}` on stderr with exit code `1`:
 
 - `400` — validation failed (bad platform value, malformed JSON flag, missing creation mode, `scheduledFor` in the past). The error body says which field; fix and retry.
-- `401` — missing or invalid API key. Re-run `postzen auth:check`; ask the user for a valid key from https://app.postzen.dev/api-keys.
+- `401` — missing or invalid API key. Re-run `postzen auth:check`; ask the user for a valid key from https://app.postzen.dev/api-keys?utm_source=npm&utm_medium=skill&utm_campaign=postzen-cli.
 - `403` — the key lacks permission (e.g. a read-only key on a write command). Ask the user for a read-write key.
 - `5xx` — server side; safe to retry `posts:create` with the same `--x-request-id`.
 
