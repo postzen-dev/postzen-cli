@@ -236,7 +236,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "analytics",
 		"action": "get",
 		"summary": "Get post analytics",
-		"description": "Returns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics.",
+		"description": "Returns one post when `postId` is supplied. Otherwise returns a paginated analytics list with aggregate overview metrics. Instagram Reels also report `skipRate` (percentage of initial views that skipped within the first 3 seconds), `avgWatchTimeMs` and `totalWatchTimeMs`.",
 		"method": "GET",
 		"pathTemplate": "/v1/analytics",
 		"positionals": [],
