@@ -910,7 +910,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "create-comment-automation",
 		"summary": "Create a comment automation",
-		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "POST",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -921,9 +921,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": true,
 				"schema": {
 					"type": "string",
-					"description": "Connected Instagram account id. Immutable after creation."
+					"description": "Connected Instagram account or Facebook Page id. Immutable after creation."
 				},
-				"description": "Connected Instagram account id. Immutable after creation."
+				"description": "Connected Instagram account or Facebook Page id. Immutable after creation."
 			},
 			{
 				"name": "profileId",
@@ -957,9 +957,10 @@ export const generatedCommands: GeneratedCommand[] = [
 						"comment",
 						"story_reply"
 					],
-					"default": "comment"
+					"default": "comment",
+					"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
 				},
-				"description": ""
+				"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
 			},
 			{
 				"name": "platformPostId",
@@ -967,9 +968,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+					"description": "Instagram media or story id, or Facebook post id (`{pageId}_{postId}`; the bare post id matches too). Mutually exclusive with postId; omit both for account-wide matching."
 				},
-				"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+				"description": "Instagram media or story id, or Facebook post id (`{pageId}_{postId}`; the bare post id matches too). Mutually exclusive with postId; omit both for account-wide matching."
 			},
 			{
 				"name": "postId",
@@ -977,9 +978,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+					"description": "Owned PostZen post with a target on this account's platform. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
 				},
-				"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+				"description": "Owned PostZen post with a target on this account's platform. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
 			},
 			{
 				"name": "postTitle",
@@ -1296,37 +1297,42 @@ export const generatedCommands: GeneratedCommand[] = [
 				"in": "body",
 				"required": false,
 				"schema": {
-					"type": "object",
-					"additionalProperties": false,
-					"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). So any rule here sends the Opening DM first (`openingDm`, defaults when unset) and checks the person when they tap its button. Story replies are already messages and are checked right away.",
-					"properties": {
-						"followerStatus": {
-							"type": "string",
-							"enum": [
-								"any",
-								"follower",
-								"non_follower"
-							],
-							"default": "any"
-						},
-						"minFollowerCount": {
-							"type": "integer",
-							"minimum": 0,
-							"description": "Omit for no size rule. Zero is stored as absent."
-						},
-						"whenUnknown": {
-							"type": "string",
-							"enum": [
-								"send",
-								"skip",
-								"verify"
-							],
-							"default": "send",
-							"description": "Applies after the Opening DM tap, when Instagram still will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - treat them as not following, so followerStatus=follower sends the follow request (`followGate.message`); tapping its button re-checks."
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). So any rule here sends the Opening DM first (`openingDm`, defaults when unset) and checks the person when they tap its button. Story replies are already messages and are checked right away.",
+							"properties": {
+								"followerStatus": {
+									"type": "string",
+									"enum": [
+										"any",
+										"follower",
+										"non_follower"
+									],
+									"default": "any"
+								},
+								"minFollowerCount": {
+									"type": "integer",
+									"minimum": 0,
+									"description": "Omit for no size rule. Zero is stored as absent."
+								},
+								"whenUnknown": {
+									"type": "string",
+									"enum": [
+										"send",
+										"skip",
+										"verify"
+									],
+									"default": "send",
+									"description": "Applies after the Opening DM tap, when Instagram still will not reveal the follow relationship. `send` (default) - deliver the DM anyway (fails open). `skip` - stay silent. `verify` - treat them as not following, so followerStatus=follower sends the follow request (`followGate.message`); tapping its button re-checks."
+								}
+							}
 						}
-					}
+					],
+					"description": "Instagram only: a Facebook automation returns 400 unsupported."
 				},
-				"description": "Who a comment automation answers. Instagram only - Meta exposes the follow relationship on no other platform, and only for people who have MESSAGED the account (a comment grants no consent). So any rule here sends the Opening DM first (`openingDm`, defaults when unset) and checks the person when they tap its button. Story replies are already messages and are checked right away."
+				"description": "Instagram only: a Facebook automation returns 400 unsupported."
 			},
 			{
 				"name": "openingDm",
@@ -1365,34 +1371,62 @@ export const generatedCommands: GeneratedCommand[] = [
 				"in": "body",
 				"required": false,
 				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "Copy for the follow request (audience.followerStatus=follower). Sensible defaults are used for any field left empty.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Follow us to get the link, then tap the button below 👇",
+									"description": "The follow request sent after the Opening DM tap to people who do not follow yet."
+								},
+								"buttonLabel": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 20,
+									"default": "I'm following",
+									"description": "Label of the button on the follow request. Tapping it re-checks the follow."
+								},
+								"notFollowingMessage": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 1000,
+									"description": "Sent when they tap the follow request button but still do not follow. The button stays, so they can follow and tap again.",
+									"default": "Looks like you're not following yet. Follow us, then tap the button again."
+								}
+							}
+						}
+					],
+					"description": "Instagram only: a Facebook automation returns 400 unsupported."
+				},
+				"description": "Instagram only: a Facebook automation returns 400 unsupported."
+			},
+			{
+				"name": "actions",
+				"in": "body",
+				"required": false,
+				"schema": {
 					"type": "object",
 					"additionalProperties": false,
-					"description": "Copy for the follow request (audience.followerStatus=follower). Sensible defaults are used for any field left empty.",
+					"description": "Extra actions on the matched comment. They run once, after the first DM attempt for the comment, never change the DM's outcome, and record their own outcome on the log as likeStatus and hideStatus.",
 					"properties": {
-						"message": {
-							"type": "string",
-							"minLength": 1,
-							"maxLength": 640,
-							"default": "Follow us to get the link, then tap the button below 👇",
-							"description": "The follow request sent after the Opening DM tap to people who do not follow yet."
+						"likeComment": {
+							"type": "boolean",
+							"default": false,
+							"description": "Like the comment as the Page. Facebook only: true on an Instagram automation returns 400 unsupported."
 						},
-						"buttonLabel": {
-							"type": "string",
-							"minLength": 1,
-							"maxLength": 20,
-							"default": "I'm following",
-							"description": "Label of the button on the follow request. Tapping it re-checks the follow."
-						},
-						"notFollowingMessage": {
-							"type": "string",
-							"minLength": 1,
-							"maxLength": 1000,
-							"description": "Sent when they tap the follow request button but still do not follow. The button stays, so they can follow and tap again.",
-							"default": "Looks like you're not following yet. Follow us, then tap the button again."
+						"hideComment": {
+							"type": "boolean",
+							"default": false,
+							"description": "Hide the comment, so only its author still sees it."
 						}
 					}
 				},
-				"description": "Copy for the follow request (audience.followerStatus=follower). Sensible defaults are used for any field left empty."
+				"description": "Extra actions on the matched comment. They run once, after the first DM attempt for the comment, never change the DM's outcome, and record their own outcome on the log as likeStatus and hideStatus."
 			}
 		],
 		"bodyMode": "flat",
@@ -1420,7 +1454,8 @@ export const generatedCommands: GeneratedCommand[] = [
 			"linkTracking",
 			"audience",
 			"openingDm",
-			"followGate"
+			"followGate",
+			"actions"
 		]
 	},
 	{
@@ -1428,7 +1463,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "delete-comment-automation",
 		"summary": "Delete a comment automation",
-		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "DELETE",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1449,7 +1484,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "get-comment-automation",
 		"summary": "Get a comment automation",
-		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1470,7 +1505,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automation-logs",
 		"summary": "List comment automation logs",
-		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations/{automationId}/logs",
 		"positionals": [
@@ -1531,7 +1566,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automations",
 		"summary": "List comment automations",
-		"description": "Returns visible automations newest first, 100 per page by default. Use limit and skip to page through more. Reads use the plan per-minute limit. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Returns visible automations newest first, 100 per page by default. Use limit and skip to page through more. Reads use the plan per-minute limit. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1586,7 +1621,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "update-comment-automation",
 		"summary": "Update a comment automation",
-		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "PATCH",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1631,9 +1666,10 @@ export const generatedCommands: GeneratedCommand[] = [
 						"comment",
 						"story_reply"
 					],
-					"default": "comment"
+					"default": "comment",
+					"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
 				},
-				"description": ""
+				"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
 			},
 			{
 				"name": "platformPostId",
@@ -1641,9 +1677,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+					"description": "Instagram media or story id, or Facebook post id (`{pageId}_{postId}`; the bare post id matches too). Mutually exclusive with postId; omit both for account-wide matching."
 				},
-				"description": "Instagram media or story id. Mutually exclusive with postId; omit both for account-wide matching."
+				"description": "Instagram media or story id, or Facebook post id (`{pageId}_{postId}`; the bare post id matches too). Mutually exclusive with postId; omit both for account-wide matching."
 			},
 			{
 				"name": "postId",
@@ -1651,9 +1687,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+					"description": "Owned PostZen post with a target on this account's platform. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
 				},
-				"description": "Owned PostZen post with an Instagram target on this account. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
+				"description": "Owned PostZen post with a target on this account's platform. Resolves providerPostId at match time, including posts not yet published. Mutually exclusive with platformPostId."
 			},
 			{
 				"name": "postTitle",
@@ -2011,9 +2047,10 @@ export const generatedCommands: GeneratedCommand[] = [
 							}
 						}
 					],
-					"nullable": true
+					"nullable": true,
+					"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
 				},
-				"description": ""
+				"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
 			},
 			{
 				"name": "openingDm",
@@ -2083,9 +2120,39 @@ export const generatedCommands: GeneratedCommand[] = [
 							}
 						}
 					],
-					"nullable": true
+					"nullable": true,
+					"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
 				},
-				"description": ""
+				"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
+			},
+			{
+				"name": "actions",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "Extra actions on the matched comment. They run once, after the first DM attempt for the comment, never change the DM's outcome, and record their own outcome on the log as likeStatus and hideStatus.",
+							"properties": {
+								"likeComment": {
+									"type": "boolean",
+									"default": false,
+									"description": "Like the comment as the Page. Facebook only: true on an Instagram automation returns 400 unsupported."
+								},
+								"hideComment": {
+									"type": "boolean",
+									"default": false,
+									"description": "Hide the comment, so only its author still sees it."
+								}
+							}
+						}
+					],
+					"nullable": true,
+					"description": "Replaces the stored actions. Send null to turn both off."
+				},
+				"description": "Replaces the stored actions. Send null to turn both off."
 			}
 		],
 		"bodyMode": "flat",
@@ -2112,7 +2179,8 @@ export const generatedCommands: GeneratedCommand[] = [
 			"linkTracking",
 			"audience",
 			"openingDm",
-			"followGate"
+			"followGate",
+			"actions"
 		]
 	},
 	{
@@ -3111,6 +3179,60 @@ export const generatedCommands: GeneratedCommand[] = [
 		]
 	},
 	{
+		"name": "inbox:add-message-reaction",
+		"group": "inbox",
+		"action": "add-message-reaction",
+		"summary": "React to a message",
+		"description": "Adds the Page's reaction to one message in a Facebook Messenger thread, replacing any reaction it already had there. The stored message then lists it in `reactions` with `fromMe: true`. Facebook Pages only: an Instagram conversation answers `400 unsupported`. Needs the Page's messaging scope. Limited to 300 reaction changes per hour per user, shared with removing reactions. Requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages/{messageId}/reactions",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "messageId",
+				"description": "Platform message id, as returned in `id` by the list-messages endpoint (`m_...` on Messenger). The message must already be in PostZen's synced copy of this conversation.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id that owns the conversation."
+				},
+				"description": "PostZen account id that owns the conversation."
+			},
+			{
+				"name": "emoji",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 16,
+					"description": "The reaction emoji. Up to 16 code points, so skin tones and joined emoji fit."
+				},
+				"description": "The reaction emoji. Up to 16 code points, so skin tones and joined emoji fit."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"emoji"
+		]
+	},
+	{
 		"name": "inbox:delete-comment",
 		"group": "inbox",
 		"action": "delete-comment",
@@ -3223,11 +3345,52 @@ export const generatedCommands: GeneratedCommand[] = [
 		]
 	},
 	{
+		"name": "inbox:like-comment",
+		"group": "inbox",
+		"action": "like-comment",
+		"summary": "Like a comment",
+		"description": "Likes a comment as the connected Facebook Page. Facebook Pages only: Instagram and Threads have no comment-like API and answer `400 unsupported`, which reconnecting does not change. `canLike` on the comment says whether the call can succeed, and `isLiked` reflects the result after the next read. Requires a read-write API key and the Page's comment-management scope. Limited to 120 per hour per user, shared with unliking.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/like",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "commentId",
+				"description": "Platform id of the comment to like or unlike.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				},
+				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId"
+		]
+	},
+	{
 		"name": "inbox:list-conversation-messages",
 		"group": "inbox",
 		"action": "list-conversation-messages",
 		"summary": "List messages in a conversation",
-		"description": "Returns the messages PostZen holds for one thread, oldest first by default, refreshing them from the platform when the stored copy is stale. Strictly read-only: it never marks the thread read — use `POST /v1/inbox/conversations/{conversationId}/read` for that. Meta returns full content only for roughly the twenty newest Instagram messages, so older ones may carry an id and timestamp without text or attachments. Read-only and read-write API keys are accepted.",
+		"description": "Returns the messages PostZen holds for one thread, oldest first by default, refreshing them from the platform when the stored copy is stale. Strictly read-only: it never marks the thread read — use `POST /v1/inbox/conversations/{conversationId}/read` for that. Meta returns full content only for roughly the twenty newest messages in a thread, on Instagram and Messenger alike, so older ones may carry an id and timestamp without text or attachments. Read-only and read-write API keys are accepted.",
 		"method": "GET",
 		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages",
 		"positionals": [
@@ -3293,7 +3456,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "list-conversations",
 		"summary": "List direct message conversations",
-		"description": "Returns the Instagram direct message threads PostZen holds for the accounts this key can reach, newest activity first, and refreshes that stored copy from the platform as a side effect (throttled per account, so a tight polling loop costs nothing extra). `meta` reports which accounts could not be refreshed; their stored threads are still returned. Read-only and read-write API keys are accepted.",
+		"description": "Returns the Instagram and Facebook Messenger direct message threads PostZen holds for the accounts this key can reach, newest activity first, and refreshes that stored copy from the platform as a side effect (throttled per account, so a tight polling loop costs nothing extra). `meta` reports which accounts could not be refreshed; their stored threads are still returned. Read-only and read-write API keys are accepted.",
 		"method": "GET",
 		"pathTemplate": "/v1/inbox/conversations",
 		"positionals": [],
@@ -3305,7 +3468,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "Restrict the read to one connected account. Omitted, every Instagram account the key can reach is queried."
+				"description": "Restrict the read to one connected account. Omitted, every Instagram account and Facebook Page the key can reach is queried."
 			},
 			{
 				"name": "profileId",
@@ -3323,10 +3486,11 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string",
 					"enum": [
-						"instagram"
+						"instagram",
+						"facebook"
 					]
 				},
-				"description": "Restrict the read to one platform. Direct messages cover Instagram only; any other value is a validation error."
+				"description": "Restrict the read to one platform. Direct messages cover Instagram and Facebook; any other value is a validation error."
 			},
 			{
 				"name": "status",
@@ -3385,7 +3549,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "list-post-comments",
 		"summary": "List comments on a post",
-		"description": "Returns the comments the platform holds for one Instagram, Facebook, or Threads post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram threads are only two levels deep, so a reply never carries replies of its own. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Read-only and read-write API keys are accepted.",
+		"description": "Returns the comments the platform holds for one Instagram, Facebook, or Threads post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram threads are only two levels deep, so a reply never carries replies of its own. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Attachment URLs are expiring Meta CDN links, so read the comment again for a fresh one. Read-only and read-write API keys are accepted.",
 		"method": "GET",
 		"pathTemplate": "/v1/inbox/comments/{postId}",
 		"positionals": [
@@ -3446,7 +3610,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "mark-conversation-read",
 		"summary": "Mark a conversation read",
-		"description": "Moves the thread’s local read watermark to its newest synced message and returns how many incoming messages crossed from unread to read. Nothing is sent to the platform, and reading messages never does this implicitly. Requires a read-write API key.",
+		"description": "Moves the thread’s local read watermark to its newest synced message and returns how many incoming messages crossed from unread to read. On a Facebook Page thread PostZen also sends Messenger a seen receipt on a best-effort basis; whether it lands never changes the response. On Instagram nothing is sent to the platform. Reading messages never marks a thread read implicitly. Requires a read-write API key.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/conversations/{conversationId}/read",
 		"positionals": [
@@ -3474,6 +3638,44 @@ export const generatedCommands: GeneratedCommand[] = [
 		"bodyKeys": [
 			"accountId"
 		]
+	},
+	{
+		"name": "inbox:remove-message-reaction",
+		"group": "inbox",
+		"action": "remove-message-reaction",
+		"summary": "Remove a reaction from a message",
+		"description": "Removes the Page's own reaction from one message in a Facebook Messenger thread. The other participant's reaction is not affected. Facebook Pages only: an Instagram conversation answers `400 unsupported`. Needs the Page's messaging scope. Limited to 300 reaction changes per hour per user, shared with adding reactions. Requires a read-write API key.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages/{messageId}/reactions",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "messageId",
+				"description": "Platform message id, as returned in `id` by the list-messages endpoint (`m_...` on Messenger). The message must already be in PostZen's synced copy of this conversation.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id that owns the conversation."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
 	},
 	{
 		"name": "inbox:reply-to-post",
@@ -3584,7 +3786,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "Restrict the read to one connected account. Omitted, every Instagram account the key can reach is queried."
+				"description": "Restrict the read to one connected account. Omitted, every Instagram account and Facebook Page the key can reach is queried."
 			},
 			{
 				"name": "profileId",
@@ -3602,10 +3804,11 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string",
 					"enum": [
-						"instagram"
+						"instagram",
+						"facebook"
 					]
 				},
-				"description": "Restrict the read to one platform. Direct messages cover Instagram only; any other value is a validation error."
+				"description": "Restrict the read to one platform. Direct messages cover Instagram and Facebook; any other value is a validation error."
 			},
 			{
 				"name": "limit",
@@ -3633,11 +3836,212 @@ export const generatedCommands: GeneratedCommand[] = [
 		"bodyKeys": []
 	},
 	{
+		"name": "inbox:send-comment-private-reply",
+		"group": "inbox",
+		"action": "send-comment-private-reply",
+		"summary": "Send a private reply to a comment",
+		"description": "Sends the commenter one direct message addressed to their comment, so it reaches their inbox without an existing conversation. Works for Instagram accounts and Facebook Pages. Meta allows one private reply per comment, sent within 7 days of the comment; a second attempt, or a comment Meta will not take a private reply for, answers `400 privateReplyConsumed`. The body is `message` with optional `quickReplies` or `buttons` (not both), under the same rules as `POST /v1/inbox/conversations/{conversationId}/messages`; attachments, templates and message tags are refused with a 400. Until the person answers, this reply is the only message the account can send them. When PostZen already holds a conversation with the commenter the reply is stored in it, and `message.sent` is emitted once. Needs the account's messaging scope (`pages_messaging` on a Facebook Page) and counts toward the plan's monthly inbox send allowance. Shares the direct message send limit of 120 per hour per user. Requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/private-reply",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comment is on: the platform's own post/media id or a PostZen post id. It scopes the `Idempotency-Key`; the reply itself is addressed to `commentId`.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "commentId",
+				"description": "Platform id of the comment to answer privately.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "Idempotency-Key",
+				"in": "header",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"maxLength": 255
+				},
+				"description": "Replay protection. Retrying with the same key and the same body replays the stored outcome and sets `Idempotent-Replayed: true`; the same key with a different body, or reused for another comment or for a direct message send, is a 422, and a key whose first request is still in flight is a 409. A reply whose outcome could not be confirmed (`502 providerOutcomeUnknown`) is stored as a terminal outcome, so retrying that key returns the same 502 rather than risking a second reply. Keys are retained for 24 hours."
+			},
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id of the connected Instagram account or Facebook Page that received the comment."
+				},
+				"description": "PostZen account id of the connected Instagram account or Facebook Page that received the comment."
+			},
+			{
+				"name": "message",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "Reply text. At most 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, or 640 characters when `buttons` are attached."
+				},
+				"description": "Reply text. At most 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, or 640 characters when `buttons` are attached."
+			},
+			{
+				"name": "quickReplies",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 13,
+					"items": {
+						"type": "object",
+						"required": [
+							"title",
+							"payload"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"title": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 20,
+								"description": "Chip label. Trimmed."
+							},
+							"payload": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 1000,
+								"description": "Sent back verbatim as `quickReplyPayload` on the person's next message when they tap the chip. Must not start with `pz:`, which is reserved."
+							},
+							"imageUrl": {
+								"type": "string",
+								"format": "uri",
+								"pattern": "^https://",
+								"description": "Public HTTPS icon shown on the chip. Facebook only: Instagram quick replies are text only, and an `imageUrl` there answers `400 unsupported`."
+							}
+						}
+					},
+					"description": "Tappable chips shown under the reply. Cannot be combined with `buttons`."
+				},
+				"description": "Tappable chips shown under the reply. Cannot be combined with `buttons`."
+			},
+			{
+				"name": "buttons",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 3,
+					"items": {
+						"description": "A button under the message or a template card. `title` is 1 to 20 characters for every type.",
+						"oneOf": [
+							{
+								"type": "object",
+								"title": "URL button",
+								"required": [
+									"type",
+									"title",
+									"url"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"type": {
+										"type": "string",
+										"const": "url"
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 20
+									},
+									"url": {
+										"type": "string",
+										"format": "uri",
+										"pattern": "^https?://",
+										"description": "Public HTTP(S) URL opened in a browser; private hosts and embedded credentials are rejected."
+									}
+								}
+							},
+							{
+								"type": "object",
+								"title": "Postback button",
+								"required": [
+									"type",
+									"title",
+									"payload"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"type": {
+										"type": "string",
+										"const": "postback"
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 20
+									},
+									"payload": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 1000,
+										"description": "Sent back verbatim as `postbackPayload` when the person taps the button. Must not start with `pz:`, which is reserved."
+									}
+								}
+							},
+							{
+								"type": "object",
+								"title": "Phone button",
+								"required": [
+									"type",
+									"title",
+									"phone"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"type": {
+										"type": "string",
+										"const": "phone"
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 20
+									},
+									"phone": {
+										"type": "string",
+										"pattern": "^\\+[1-9]\\d{6,14}$",
+										"description": "E.164 number to call, such as `+16505551234`. Facebook only: Instagram answers `400 unsupported`."
+									}
+								}
+							}
+						]
+					},
+					"description": "Buttons under the reply. `phone` buttons are Facebook only. Cannot be combined with `quickReplies`."
+				},
+				"description": "Buttons under the reply. `phone` buttons are Facebook only. Cannot be combined with `quickReplies`."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId",
+			"message",
+			"quickReplies",
+			"buttons"
+		]
+	},
+	{
 		"name": "inbox:send-message",
 		"group": "inbox",
 		"action": "send-message",
 		"summary": "Send a direct message",
-		"description": "Sends a message into an existing thread. The recipient is the other participant on that thread, so no recipient id is needed. Exactly one of `message` or `attachmentUrl` may be sent per call — Meta's Send API carries one payload at a time, so combining them is a 400. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. Sends are hard-gated on the account's messaging scope. Requires a read-write API key.",
+		"description": "Sends a message into an existing Instagram or Facebook Messenger thread. The recipient is the other participant on that thread, so no recipient id is needed. Send exactly one body shape per call: `message` (optionally with `quickReplies` or `buttons`), an attachment (`attachmentUrl` with `attachmentType`), or a `template`. Meta's Send API carries one payload at a time, so `message` with `attachmentUrl`, `quickReplies` with `buttons`, and `template` with any of the others are each a 400. `phone` buttons and `template.imageAspectRatio` are Facebook only and answer `400 unsupported` on Instagram. Text is capped at 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, and at 640 characters when `buttons` are attached. A validation failure names the offending field in `param`. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. `messageTag: HUMAN_AGENT` with `messagingType: MESSAGE_TAG` lets a person on your team answer after the window has closed, but Meta accepts it only when the Meta app has been approved for the Human Agent feature. Meta retired every other message tag on 2026-04-27, and PostZen rejects them with a 400. When another app connected to the Facebook Page controls the Messenger conversation, the send answers `409 notThreadOwner`. Sends are hard-gated on the account's messaging scope and count toward the plan's monthly inbox send allowance, which answers `402` once it is used up. Limited to 120 sends per hour per user, shared with comment private replies. Requires a read-write API key.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages",
 		"positionals": [
@@ -3676,9 +4080,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Message text. Cannot be combined with `attachmentUrl`: Meta accepts one payload per call, so a request carrying both is rejected with a 400 rather than silently sending half of it."
+					"description": "Message text. At most 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, or 640 characters when `buttons` are attached. Required with `quickReplies` or `buttons`; cannot be combined with `attachmentUrl` or `template`."
 				},
-				"description": "Message text. Cannot be combined with `attachmentUrl`: Meta accepts one payload per call, so a request carrying both is rejected with a 400 rather than silently sending half of it."
+				"description": "Message text. At most 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, or 640 characters when `buttons` are attached. Required with `quickReplies` or `buttons`; cannot be combined with `attachmentUrl` or `template`."
 			},
 			{
 				"name": "attachmentUrl",
@@ -3706,6 +4110,321 @@ export const generatedCommands: GeneratedCommand[] = [
 					"description": "Required whenever `attachmentUrl` is set."
 				},
 				"description": "Required whenever `attachmentUrl` is set."
+			},
+			{
+				"name": "quickReplies",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 13,
+					"items": {
+						"type": "object",
+						"required": [
+							"title",
+							"payload"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"title": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 20,
+								"description": "Chip label. Trimmed."
+							},
+							"payload": {
+								"type": "string",
+								"minLength": 1,
+								"maxLength": 1000,
+								"description": "Sent back verbatim as `quickReplyPayload` on the person's next message when they tap the chip. Must not start with `pz:`, which is reserved."
+							},
+							"imageUrl": {
+								"type": "string",
+								"format": "uri",
+								"pattern": "^https://",
+								"description": "Public HTTPS icon shown on the chip. Facebook only: Instagram quick replies are text only, and an `imageUrl` there answers `400 unsupported`."
+							}
+						}
+					},
+					"description": "Tappable chips shown under `message`. Requires `message`; cannot be combined with `buttons` or `template`."
+				},
+				"description": "Tappable chips shown under `message`. Requires `message`; cannot be combined with `buttons` or `template`."
+			},
+			{
+				"name": "buttons",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "array",
+					"minItems": 1,
+					"maxItems": 3,
+					"items": {
+						"description": "A button under the message or a template card. `title` is 1 to 20 characters for every type.",
+						"oneOf": [
+							{
+								"type": "object",
+								"title": "URL button",
+								"required": [
+									"type",
+									"title",
+									"url"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"type": {
+										"type": "string",
+										"const": "url"
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 20
+									},
+									"url": {
+										"type": "string",
+										"format": "uri",
+										"pattern": "^https?://",
+										"description": "Public HTTP(S) URL opened in a browser; private hosts and embedded credentials are rejected."
+									}
+								}
+							},
+							{
+								"type": "object",
+								"title": "Postback button",
+								"required": [
+									"type",
+									"title",
+									"payload"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"type": {
+										"type": "string",
+										"const": "postback"
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 20
+									},
+									"payload": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 1000,
+										"description": "Sent back verbatim as `postbackPayload` when the person taps the button. Must not start with `pz:`, which is reserved."
+									}
+								}
+							},
+							{
+								"type": "object",
+								"title": "Phone button",
+								"required": [
+									"type",
+									"title",
+									"phone"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"type": {
+										"type": "string",
+										"const": "phone"
+									},
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 20
+									},
+									"phone": {
+										"type": "string",
+										"pattern": "^\\+[1-9]\\d{6,14}$",
+										"description": "E.164 number to call, such as `+16505551234`. Facebook only: Instagram answers `400 unsupported`."
+									}
+								}
+							}
+						]
+					},
+					"description": "Buttons under `message`, sent as Meta's button template. Requires `message` (at most 640 characters); cannot be combined with `quickReplies` or `template`."
+				},
+				"description": "Buttons under `message`, sent as Meta's button template. Requires `message` (at most 640 characters); cannot be combined with `quickReplies` or `template`."
+			},
+			{
+				"name": "template",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "object",
+					"description": "Meta generic template: one image card, or a swipeable carousel of up to ten. Sent on its own, without `message`, an attachment, `buttons` or `quickReplies`.",
+					"required": [
+						"type",
+						"elements"
+					],
+					"additionalProperties": false,
+					"properties": {
+						"type": {
+							"type": "string",
+							"const": "generic"
+						},
+						"imageAspectRatio": {
+							"type": "string",
+							"enum": [
+								"horizontal",
+								"square"
+							],
+							"description": "Facebook only: Instagram answers `400 unsupported`. Meta's default is `horizontal`."
+						},
+						"elements": {
+							"type": "array",
+							"minItems": 1,
+							"maxItems": 10,
+							"items": {
+								"type": "object",
+								"required": [
+									"title"
+								],
+								"additionalProperties": false,
+								"properties": {
+									"title": {
+										"type": "string",
+										"minLength": 1,
+										"maxLength": 80,
+										"description": "Card title. Trimmed. A card needs at least one of `subtitle`, `imageUrl`, or a button besides its title."
+									},
+									"subtitle": {
+										"type": "string",
+										"maxLength": 80,
+										"description": "Optional line under the title."
+									},
+									"imageUrl": {
+										"type": "string",
+										"format": "uri",
+										"pattern": "^https://",
+										"description": "Public HTTPS image URL that Meta fetches."
+									},
+									"buttons": {
+										"type": "array",
+										"maxItems": 3,
+										"items": {
+											"description": "A button under the message or a template card. `title` is 1 to 20 characters for every type.",
+											"oneOf": [
+												{
+													"type": "object",
+													"title": "URL button",
+													"required": [
+														"type",
+														"title",
+														"url"
+													],
+													"additionalProperties": false,
+													"properties": {
+														"type": {
+															"type": "string",
+															"const": "url"
+														},
+														"title": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 20
+														},
+														"url": {
+															"type": "string",
+															"format": "uri",
+															"pattern": "^https?://",
+															"description": "Public HTTP(S) URL opened in a browser; private hosts and embedded credentials are rejected."
+														}
+													}
+												},
+												{
+													"type": "object",
+													"title": "Postback button",
+													"required": [
+														"type",
+														"title",
+														"payload"
+													],
+													"additionalProperties": false,
+													"properties": {
+														"type": {
+															"type": "string",
+															"const": "postback"
+														},
+														"title": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 20
+														},
+														"payload": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 1000,
+															"description": "Sent back verbatim as `postbackPayload` when the person taps the button. Must not start with `pz:`, which is reserved."
+														}
+													}
+												},
+												{
+													"type": "object",
+													"title": "Phone button",
+													"required": [
+														"type",
+														"title",
+														"phone"
+													],
+													"additionalProperties": false,
+													"properties": {
+														"type": {
+															"type": "string",
+															"const": "phone"
+														},
+														"title": {
+															"type": "string",
+															"minLength": 1,
+															"maxLength": 20
+														},
+														"phone": {
+															"type": "string",
+															"pattern": "^\\+[1-9]\\d{6,14}$",
+															"description": "E.164 number to call, such as `+16505551234`. Facebook only: Instagram answers `400 unsupported`."
+														}
+													}
+												}
+											]
+										},
+										"description": "Up to three buttons under the card."
+									}
+								}
+							}
+						}
+					}
+				},
+				"description": "Meta generic template: one image card, or a swipeable carousel of up to ten. Sent on its own, without `message`, an attachment, `buttons` or `quickReplies`."
+			},
+			{
+				"name": "messagingType",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"RESPONSE",
+						"UPDATE",
+						"MESSAGE_TAG"
+					],
+					"description": "Meta's `messaging_type`. Facebook sends `RESPONSE` when it is omitted; Instagram sends none unless you set it. `MESSAGE_TAG` requires `messageTag`."
+				},
+				"description": "Meta's `messaging_type`. Facebook sends `RESPONSE` when it is omitted; Instagram sends none unless you set it. `MESSAGE_TAG` requires `messageTag`."
+			},
+			{
+				"name": "messageTag",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"HUMAN_AGENT"
+					],
+					"description": "Requires `messagingType: MESSAGE_TAG`. `HUMAN_AGENT` lets a person on your team answer after the 24-hour window has closed, and works only when the Meta app has been approved for the Human Agent feature. Meta retired `CONFIRMED_EVENT_UPDATE`, `ACCOUNT_UPDATE` and `POST_PURCHASE_UPDATE` on 2026-04-27; sending one is a 400."
+				},
+				"description": "Requires `messagingType: MESSAGE_TAG`. `HUMAN_AGENT` lets a person on your team answer after the 24-hour window has closed, and works only when the Meta app has been approved for the Human Agent feature. Meta retired `CONFIRMED_EVENT_UPDATE`, `ACCOUNT_UPDATE` and `POST_PURCHASE_UPDATE` on 2026-04-27; sending one is a 400."
 			}
 		],
 		"bodyMode": "flat",
@@ -3713,7 +4432,46 @@ export const generatedCommands: GeneratedCommand[] = [
 			"accountId",
 			"message",
 			"attachmentUrl",
-			"attachmentType"
+			"attachmentType",
+			"quickReplies",
+			"buttons",
+			"template",
+			"messagingType",
+			"messageTag"
+		]
+	},
+	{
+		"name": "inbox:send-typing-indicator",
+		"group": "inbox",
+		"action": "send-typing-indicator",
+		"summary": "Show a typing indicator",
+		"description": "Shows the typing bubble to the other participant of a Facebook Messenger thread. Meta clears it on its own after 20 seconds or when your next message arrives, so call it again while a reply is still being written. Facebook Pages only: an Instagram conversation answers `400 unsupported`. Once the conversation resolves the answer is always a 200; `success` is false when Meta declined the indicator, and there is nothing to retry. Needs the Page's messaging scope. Limited to 600 per hour per user. Requires a read-write API key.",
+		"method": "POST",
+		"pathTemplate": "/v1/inbox/conversations/{conversationId}/typing",
+		"positionals": [
+			{
+				"name": "conversationId",
+				"description": "The platform's own conversation (thread) id, as returned in `id` by the list and search endpoints — not a PostZen document id.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "body",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"description": "PostZen account id that owns the conversation."
+				},
+				"description": "PostZen account id that owns the conversation."
+			}
+		],
+		"bodyMode": "flat",
+		"bodyKeys": [
+			"accountId"
 		]
 	},
 	{
@@ -3749,6 +4507,44 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "string"
 				},
 				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
+		"name": "inbox:unlike-comment",
+		"group": "inbox",
+		"action": "unlike-comment",
+		"summary": "Unlike a comment",
+		"description": "Removes the connected Facebook Page's like from a comment. Facebook Pages only: Instagram and Threads answer `400 unsupported`. Requires a read-write API key and the Page's comment-management scope. Limited to 120 per hour per user, shared with liking.",
+		"method": "DELETE",
+		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/like",
+		"positionals": [
+			{
+				"name": "postId",
+				"description": "Post the comments belong to. Accepts a PostZen post id — resolved to the id the post was published under for `accountId` — or the platform's own post/media id, which is the common case because the inbox covers every post the account has, not only the ones PostZen published. Instagram and Facebook also accept a comment id here.",
+				"schema": {
+					"type": "string"
+				}
+			},
+			{
+				"name": "commentId",
+				"description": "Platform id of the comment to like or unlike.",
+				"schema": {
+					"type": "string"
+				}
+			}
+		],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "PostZen account id of the connected Facebook Page that owns the post."
 			}
 		],
 		"bodyMode": null,
@@ -6084,6 +6880,8 @@ export const generatedCommands: GeneratedCommand[] = [
 							"conversation.started",
 							"message.received",
 							"message.sent",
+							"message.edited",
+							"reaction.received",
 							"comment.received",
 							"contact.tag_added",
 							"contact.tag_removed",
@@ -6286,6 +7084,8 @@ export const generatedCommands: GeneratedCommand[] = [
 						"conversation.started",
 						"message.received",
 						"message.sent",
+						"message.edited",
+						"reaction.received",
 						"comment.received",
 						"contact.tag_added",
 						"contact.tag_removed",
@@ -6464,6 +7264,8 @@ export const generatedCommands: GeneratedCommand[] = [
 							"conversation.started",
 							"message.received",
 							"message.sent",
+							"message.edited",
+							"reaction.received",
 							"comment.received",
 							"contact.tag_added",
 							"contact.tag_removed",
