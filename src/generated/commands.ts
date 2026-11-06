@@ -910,7 +910,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "create-comment-automation",
 		"summary": "Create a comment automation",
-		"description": "Requires read_write. Limited to 60 creates per hour per user. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "POST",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1531,7 +1531,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automations",
 		"summary": "List comment automations",
-		"description": "Returns visible automations newest first, maximum 100. Reads use the plan per-minute limit. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
+		"description": "Returns visible automations newest first, 100 per page by default. Use limit and skip to page through more. Reads use the plan per-minute limit. Instagram only. A comment permits one private reply ever, within 7 days. Story replies use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages.",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1551,6 +1551,29 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string"
+				},
+				"description": ""
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 200,
+					"default": 100
+				},
+				"description": ""
+			},
+			{
+				"name": "skip",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0,
+					"default": 0
 				},
 				"description": ""
 			}
