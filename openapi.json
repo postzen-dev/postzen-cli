@@ -3656,6 +3656,8 @@
 											"participantPicture": "https://scontent.cdninstagram.com/v/t51.2885-19/jane.jpg",
 											"lastMessage": "Is the sale still on?",
 											"lastMessageAt": "2026-08-18T16:04:11.000Z",
+											"lastInboundAt": "2026-08-18T16:04:11.000Z",
+											"replyWindowClosesAt": "2026-08-19T16:04:11.000Z",
 											"updatedTime": "2026-08-18T16:04:11.000Z",
 											"status": "active",
 											"unreadCount": 2
@@ -3844,7 +3846,9 @@
 												"participantUsername": "janedoe",
 												"status": "active",
 												"lastMessage": "Is the sale still on?",
-												"lastMessageAt": "2026-08-18T16:04:11.000Z"
+												"lastMessageAt": "2026-08-18T16:04:11.000Z",
+												"lastInboundAt": "2026-08-18T16:04:11.000Z",
+												"replyWindowClosesAt": "2026-08-19T16:04:11.000Z"
 											},
 											"matchCount": 2,
 											"matches": [
@@ -3997,6 +4001,8 @@
 										"participantPicture": "https://scontent.cdninstagram.com/v/t51.2885-19/jane.jpg",
 										"lastMessage": "Is the sale still on?",
 										"lastMessageAt": "2026-08-18T16:04:11.000Z",
+										"lastInboundAt": "2026-08-18T16:04:11.000Z",
+										"replyWindowClosesAt": "2026-08-19T16:04:11.000Z",
 										"updatedTime": "2026-08-18T16:04:11.000Z",
 										"status": "active",
 										"unreadCount": 2
@@ -4601,7 +4607,7 @@
 				],
 				"operationId": "sendInboxMessage",
 				"summary": "Send a direct message",
-				"description": "Sends a message into an existing Instagram or Facebook Messenger thread. The recipient is the other participant on that thread, so no recipient id is needed. Send exactly one body shape per call: `message` (optionally with `quickReplies` or `buttons`), an attachment (`attachmentUrl` with `attachmentType`), or a `template`. Meta's Send API carries one payload at a time, so `message` with `attachmentUrl`, `quickReplies` with `buttons`, and `template` with any of the others are each a 400. `phone` buttons and `template.imageAspectRatio` are Facebook only and answer `400 unsupported` on Instagram. Text is capped at 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, and at 640 characters when `buttons` are attached. A validation failure names the offending field in `param`. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. `messageTag: HUMAN_AGENT` with `messagingType: MESSAGE_TAG` lets a person on your team answer after the window has closed, but Meta accepts it only when the Meta app has been approved for the Human Agent feature. Meta retired every other message tag on 2026-04-27, and PostZen rejects them with a 400. When another app connected to the Facebook Page controls the Messenger conversation, the send answers `409 notThreadOwner`. Sends are hard-gated on the account's messaging scope and count toward the plan's monthly inbox send allowance, which answers `402` once it is used up. Limited to 120 sends per hour per user, shared with comment private replies. Requires a read-write API key.",
+				"description": "Sends a message into an existing Instagram or Facebook Messenger thread. The recipient is the other participant on that thread, so no recipient id is needed. Send exactly one body shape per call: `message` (optionally with `quickReplies` or `buttons`), an attachment (`attachmentUrl` with `attachmentType`), or a `template`. Meta's Send API carries one payload at a time, so `message` with `attachmentUrl`, `quickReplies` with `buttons`, and `template` with any of the others are each a 400. `phone` buttons and `template.imageAspectRatio` are Facebook only and answer `400 unsupported` on Instagram. Text is capped at 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, and at 640 characters when `buttons` are attached. A validation failure names the offending field in `param`. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. Before sending, check the conversation's `replyWindowClosesAt`: a time in the past means the window has most likely closed, though Meta makes the final decision. `messageTag: HUMAN_AGENT` with `messagingType: MESSAGE_TAG` lets a person on your team answer after the window has closed, but Meta accepts it only when the Meta app has been approved for the Human Agent feature. Meta retired every other message tag on 2026-04-27, and PostZen rejects them with a 400. When another app connected to the Facebook Page controls the Messenger conversation, the send answers `409 notThreadOwner`. Sends are hard-gated on the account's messaging scope and count toward the plan's monthly inbox send allowance, which answers `402` once it is used up. Limited to 120 sends per hour per user, shared with comment private replies. Requires a read-write API key.",
 				"parameters": [
 					{
 						"name": "Idempotency-Key",
@@ -4648,21 +4654,23 @@
 						}
 					},
 					"400": {
-						"description": "A parameter is missing or malformed (`param` names the field when the message body failed validation), two body shapes were combined, the field is valid but not on this account's platform (`unsupported`), the account is not on a supported platform (`platformUnsupported`), or the platform refused a send it could accept at another time (`PLATFORM_LIMITATION`).",
+						"description": "A parameter is missing or malformed (`param` names the field when the message body failed validation), two body shapes were combined, the field is valid but not on this account's platform (`unsupported`), the account is not on a supported platform (`platformUnsupported`), or the platform refused a send it could accept at another time (`PLATFORM_LIMITATION`; a 24-hour window refusal also carries the stored `lastInboundAt` and `replyWindowClosesAt`).",
 						"content": {
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/InboxDmErrorResponse"
 								},
 								"example": {
-									"error": "This message is sent outside of allowed window.",
+									"error": "Instagram only accepts replies within 24 hours of the person's last message. They last wrote on 2026-08-16T09:12:40.000Z, so this conversation is closed until they message again.",
 									"code": "PLATFORM_LIMITATION",
 									"platform": "instagram",
 									"platformError": {
 										"code": 10,
 										"subcode": 2534022,
 										"type": "OAuthException"
-									}
+									},
+									"lastInboundAt": "2026-08-16T09:12:40.000Z",
+									"replyWindowClosesAt": "2026-08-17T09:12:40.000Z"
 								}
 							}
 						}
@@ -5570,7 +5578,7 @@
 					{
 						"name": "fromDate",
 						"in": "query",
-						"description": "Inclusive range start. Defaults to 90 days before `toDate`.",
+						"description": "Inclusive range start. Defaults to 90 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -5578,7 +5586,7 @@
 					{
 						"name": "toDate",
 						"in": "query",
-						"description": "Inclusive range end. Defaults to the current time.",
+						"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -5734,7 +5742,7 @@
 					{
 						"name": "fromDate",
 						"in": "query",
-						"description": "Inclusive range start. Defaults to 90 days before `toDate`.",
+						"description": "Inclusive range start. Defaults to 90 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -5742,7 +5750,7 @@
 					{
 						"name": "toDate",
 						"in": "query",
-						"description": "Inclusive range end. Defaults to the current time.",
+						"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -5831,7 +5839,7 @@
 					{
 						"name": "fromDate",
 						"in": "query",
-						"description": "Inclusive range start. Defaults to 180 days before `toDate`.",
+						"description": "Inclusive range start. Defaults to 180 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -5839,7 +5847,7 @@
 					{
 						"name": "toDate",
 						"in": "query",
-						"description": "Inclusive range end. Defaults to the current time.",
+						"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -6031,7 +6039,7 @@
 					{
 						"name": "fromDate",
 						"in": "query",
-						"description": "Inclusive range start. Defaults to 30 days before `toDate`.",
+						"description": "Inclusive range start. Defaults to 30 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -6039,7 +6047,7 @@
 					{
 						"name": "toDate",
 						"in": "query",
-						"description": "Inclusive range end. Defaults to the current time.",
+						"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`.",
 						"schema": {
 							"$ref": "#/components/schemas/AnalyticsDate"
 						}
@@ -11492,6 +11500,8 @@
 					"platform",
 					"accountId",
 					"accountUsername",
+					"lastInboundAt",
+					"replyWindowClosesAt",
 					"updatedTime",
 					"status",
 					"unreadCount"
@@ -11559,6 +11569,22 @@
 					"lastMessageAt": {
 						"type": "string",
 						"format": "date-time"
+					},
+					"lastInboundAt": {
+						"type": [
+							"string",
+							"null"
+						],
+						"format": "date-time",
+						"description": "When the other participant last sent a message that PostZen has synced, or null when none is known; it reflects synced messages, so it can lag Meta by a sync interval."
+					},
+					"replyWindowClosesAt": {
+						"type": [
+							"string",
+							"null"
+						],
+						"format": "date-time",
+						"description": "`lastInboundAt` plus 24 hours, the end of Meta's reply window, or null when `lastInboundAt` is null; it reflects synced messages and can lag by a sync interval, and Meta makes the final decision on every send."
 					},
 					"updatedTime": {
 						"type": "string",
@@ -11742,7 +11768,9 @@
 							"id",
 							"platform",
 							"accountId",
-							"status"
+							"status",
+							"lastInboundAt",
+							"replyWindowClosesAt"
 						],
 						"properties": {
 							"id": {
@@ -11781,6 +11809,22 @@
 							"lastMessageAt": {
 								"type": "string",
 								"format": "date-time"
+							},
+							"lastInboundAt": {
+								"type": [
+									"string",
+									"null"
+								],
+								"format": "date-time",
+								"description": "When the other participant last sent a message that PostZen has synced, or null when none is known; it reflects synced messages, so it can lag Meta by a sync interval."
+							},
+							"replyWindowClosesAt": {
+								"type": [
+									"string",
+									"null"
+								],
+								"format": "date-time",
+								"description": "`lastInboundAt` plus 24 hours, the end of Meta's reply window, or null when `lastInboundAt` is null; it reflects synced messages and can lag by a sync interval, and Meta makes the final decision on every send."
 							}
 						}
 					},
@@ -12596,6 +12640,22 @@
 										"type": "string"
 									}
 								}
+							},
+							"lastInboundAt": {
+								"type": [
+									"string",
+									"null"
+								],
+								"format": "date-time",
+								"description": "Present only on a send refused for the 24-hour reply window: the conversation's stored `lastInboundAt` that the `error` text was written from."
+							},
+							"replyWindowClosesAt": {
+								"type": [
+									"string",
+									"null"
+								],
+								"format": "date-time",
+								"description": "Present alongside `lastInboundAt`: the stored end of the reply window, which can lag Meta by a sync interval."
 							}
 						}
 					}

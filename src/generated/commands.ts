@@ -331,7 +331,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range start. Defaults to 90 days before `toDate`."
+				"description": "Inclusive range start. Defaults to 90 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it."
 			},
 			{
 				"name": "toDate",
@@ -350,7 +350,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range end. Defaults to the current time."
+				"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`."
 			},
 			{
 				"name": "limit",
@@ -549,7 +549,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range start. Defaults to 180 days before `toDate`."
+				"description": "Inclusive range start. Defaults to 180 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it."
 			},
 			{
 				"name": "toDate",
@@ -568,7 +568,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range end. Defaults to the current time."
+				"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`."
 			},
 			{
 				"name": "source",
@@ -648,7 +648,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range start. Defaults to 30 days before `toDate`."
+				"description": "Inclusive range start. Defaults to 30 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it."
 			},
 			{
 				"name": "toDate",
@@ -667,7 +667,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range end. Defaults to the current time."
+				"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`."
 			},
 			{
 				"name": "granularity",
@@ -724,7 +724,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range start. Defaults to 90 days before `toDate`."
+				"description": "Inclusive range start. Defaults to 90 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it."
 			},
 			{
 				"name": "toDate",
@@ -743,7 +743,7 @@ export const generatedCommands: GeneratedCommand[] = [
 					],
 					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
 				},
-				"description": "Inclusive range end. Defaults to the current time."
+				"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`."
 			}
 		],
 		"bodyMode": null,
@@ -4041,7 +4041,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "send-message",
 		"summary": "Send a direct message",
-		"description": "Sends a message into an existing Instagram or Facebook Messenger thread. The recipient is the other participant on that thread, so no recipient id is needed. Send exactly one body shape per call: `message` (optionally with `quickReplies` or `buttons`), an attachment (`attachmentUrl` with `attachmentType`), or a `template`. Meta's Send API carries one payload at a time, so `message` with `attachmentUrl`, `quickReplies` with `buttons`, and `template` with any of the others are each a 400. `phone` buttons and `template.imageAspectRatio` are Facebook only and answer `400 unsupported` on Instagram. Text is capped at 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, and at 640 characters when `buttons` are attached. A validation failure names the offending field in `param`. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. `messageTag: HUMAN_AGENT` with `messagingType: MESSAGE_TAG` lets a person on your team answer after the window has closed, but Meta accepts it only when the Meta app has been approved for the Human Agent feature. Meta retired every other message tag on 2026-04-27, and PostZen rejects them with a 400. When another app connected to the Facebook Page controls the Messenger conversation, the send answers `409 notThreadOwner`. Sends are hard-gated on the account's messaging scope and count toward the plan's monthly inbox send allowance, which answers `402` once it is used up. Limited to 120 sends per hour per user, shared with comment private replies. Requires a read-write API key.",
+		"description": "Sends a message into an existing Instagram or Facebook Messenger thread. The recipient is the other participant on that thread, so no recipient id is needed. Send exactly one body shape per call: `message` (optionally with `quickReplies` or `buttons`), an attachment (`attachmentUrl` with `attachmentType`), or a `template`. Meta's Send API carries one payload at a time, so `message` with `attachmentUrl`, `quickReplies` with `buttons`, and `template` with any of the others are each a 400. `phone` buttons and `template.imageAspectRatio` are Facebook only and answer `400 unsupported` on Instagram. Text is capped at 1000 UTF-8 bytes on Instagram and 2000 characters on Facebook, and at 640 characters when `buttons` are attached. A validation failure names the offending field in `param`. Meta only accepts replies within 24 hours of the person's last message; outside that window the platform refuses the send and PostZen reports `400 PLATFORM_LIMITATION` with Meta's own envelope attached. Before sending, check the conversation's `replyWindowClosesAt`: a time in the past means the window has most likely closed, though Meta makes the final decision. `messageTag: HUMAN_AGENT` with `messagingType: MESSAGE_TAG` lets a person on your team answer after the window has closed, but Meta accepts it only when the Meta app has been approved for the Human Agent feature. Meta retired every other message tag on 2026-04-27, and PostZen rejects them with a 400. When another app connected to the Facebook Page controls the Messenger conversation, the send answers `409 notThreadOwner`. Sends are hard-gated on the account's messaging scope and count toward the plan's monthly inbox send allowance, which answers `402` once it is used up. Limited to 120 sends per hour per user, shared with comment private replies. Requires a read-write API key.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/conversations/{conversationId}/messages",
 		"positionals": [
