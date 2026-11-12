@@ -416,6 +416,67 @@ export const generatedCommands: GeneratedCommand[] = [
 		"bodyKeys": []
 	},
 	{
+		"name": "analytics:get-account-insights",
+		"group": "analytics",
+		"action": "get-account-insights",
+		"summary": "Get account insights",
+		"description": "Daily profile activity and audience for a TikTok account connected through the TikTok Business app. Other accounts return 400 with code platformUnsupported.",
+		"method": "GET",
+		"pathTemplate": "/v1/analytics/account-insights",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": true,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Connected account id."
+			},
+			{
+				"name": "fromDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range start. Defaults to 30 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it."
+			},
+			{
+				"name": "toDate",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"oneOf": [
+						{
+							"type": "string",
+							"format": "date"
+						},
+						{
+							"type": "string",
+							"format": "date-time"
+						}
+					],
+					"description": "A `YYYY-MM-DD` calendar date or ISO 8601 datetime."
+				},
+				"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
+	},
+	{
 		"name": "analytics:get-best-time-to-post",
 		"group": "analytics",
 		"action": "get-best-time-to-post",
@@ -2257,7 +2318,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "connect",
 		"action": "create-url",
 		"summary": "Create an OAuth connect URL",
-		"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.\n\nFor `telegram`, the returned `authUrl` is a PostZen-hosted page that issues a short-lived access code (there is no OAuth grant and no Telegram authorization screen); the connection completes when the user adds @PostZenScheduleBot as an administrator of a channel or group and sends that code to the bot.\n\nTo reauthorize an existing account, pass `accountId` instead of `profileId`. The flow is pinned to that account: the user must authorize the same provider account, and the account keeps its id, profile, scheduled posts and comment automations. Reauthorizing an account whose status is `connected` or `needsReauth` does not count against your plan's included accounts. Disconnecting and connecting again instead creates a new account id and cancels the account's pending posts, so prefer `accountId`.",
+		"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.\n\nFor `telegram`, the returned `authUrl` is a PostZen-hosted page that issues a short-lived access code (there is no OAuth grant and no Telegram authorization screen); the connection completes when the user adds @PostZenScheduleBot as an administrator of a channel or group and sends that code to the bot.\n\nTo reauthorize an existing account, pass `accountId` instead of `profileId`. The flow is pinned to that account: the user must authorize the same provider account, and the account keeps its id, profile, scheduled posts and comment automations. Reauthorizing an account whose status is `connected` or `needsReauth` does not count against your plan's included accounts. Disconnecting and connecting again instead creates a new account id and cancels the account's pending posts, so prefer `accountId`.\n\nFor `tiktok`, new connections use PostZen's TikTok for Business app. Reconnecting an account that was connected earlier moves it to that app in place: pass its `accountId`, or connect in the same profile and PostZen moves the account whose display name matches. After a move the redirect may carry `affected_scheduled_videos`, the number of scheduled videos that are not public and will fail until they are set to public or sent as drafts. A TikTok connect can fail with `error=missing_tiktok_permissions` (with `missing_scopes`), `tiktok_account_mismatch`, `tiktok_publish_in_progress`, or `tiktok_account_already_connected`; none of them changes the existing account.",
 		"method": "GET",
 		"pathTemplate": "/v1/connect/{platform}",
 		"positionals": [
@@ -3237,7 +3298,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "delete-comment",
 		"summary": "Delete a comment",
-		"description": "Deletes a comment. Requires a read-write API key and the account's comment-management scope. `canDelete` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only allows deleting replies the connected account itself wrote.",
+		"description": "Deletes a comment. Requires a read-write API key and the account's comment-management scope. `canDelete` on the comment says whether the platform allows it: Facebook reports it per comment, Threads only allows deleting replies the connected account itself wrote, and TikTok only the connected account's own comments; deleting someone else's TikTok comment answers `400 unsupported` without calling TikTok.",
 		"method": "DELETE",
 		"pathTemplate": "/v1/inbox/comments/{postId}",
 		"positionals": [
@@ -3257,7 +3318,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 			},
 			{
 				"name": "commentId",
@@ -3308,7 +3369,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "hide-comment",
 		"summary": "Hide a comment",
-		"description": "Hides a comment so only its author still sees it. Requires a read-write API key and the account's comment-management scope. `canHide` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only supports hiding top-level replies on the connected account's own posts — hiding one there also hides the replies beneath it.",
+		"description": "Hides a comment so only its author still sees it. Requires a read-write API key and the account's comment-management scope. `canHide` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only supports hiding top-level replies on the connected account's own posts — hiding one there also hides the replies beneath it. TikTok hides only other people's comments; hiding the connected account's own TikTok comment answers `400 unsupported` without calling TikTok.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/hide",
 		"positionals": [
@@ -3334,9 +3395,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": true,
 				"schema": {
 					"type": "string",
-					"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+					"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 				},
-				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 			}
 		],
 		"bodyMode": "flat",
@@ -3349,7 +3410,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "like-comment",
 		"summary": "Like a comment",
-		"description": "Likes a comment as the connected Facebook Page. Facebook Pages only: Instagram and Threads have no comment-like API and answer `400 unsupported`, which reconnecting does not change. `canLike` on the comment says whether the call can succeed, and `isLiked` reflects the result after the next read. Requires a read-write API key and the Page's comment-management scope. Limited to 120 per hour per user, shared with unliking.",
+		"description": "Likes a comment as the connected Facebook Page or TikTok account. Facebook Pages and TikTok accounts only: Instagram and Threads have no comment-like API and answer `400 unsupported`, which reconnecting does not change. `canLike` on the comment says whether the call can succeed, and `isLiked` reflects the result after the next read. Requires a read-write API key and the account's comment-management scope. Limited to 120 per hour per user, shared with unliking.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/like",
 		"positionals": [
@@ -3375,15 +3436,145 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": true,
 				"schema": {
 					"type": "string",
-					"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+					"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 				},
-				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 			}
 		],
 		"bodyMode": "flat",
 		"bodyKeys": [
 			"accountId"
 		]
+	},
+	{
+		"name": "inbox:list-comments",
+		"group": "inbox",
+		"action": "list-comments",
+		"summary": "List commented posts",
+		"description": "Returns posts with their comment counts across the connected Instagram, Facebook, Threads, and TikTok accounts the key can reach, including posts published outside PostZen. Use a post's `id` with its `accountId` on `GET /v1/inbox/comments/{postId}` to read its comments.\n\nRead-through: on a request without `cursor`, each in-scope account whose stored post list is older than 5 minutes is refreshed from the platform (its newest 50 posts), at most 10 accounts per request, stalest first and 3 at a time; the rest are answered from stored posts and refresh on a later request. Requests with `cursor` read stored posts only. A refresh failure does not fail the request: the account appears in `meta.failedAccounts` and its stored posts are still returned. Accounts that need reauthorization are reported there with code `connection_dead` and are not refreshed.\n\nTikTok covers accounts connected through the TikTok for Business app only (`connectionLane: business` on the account). Other TikTok accounts are never queried and are listed in `meta.accountsSkipped`.\n\n`commentCount` is the count the platform reported at the last refresh: Instagram `comments_count`, the Facebook post's comment summary total, and the TikTok video's `comments`. Threads reports no count, so Threads posts omit `commentCount`, sort after every counted post under `sortBy=comments` (`desc`), and never match `minComments`. `likeCount` comes from the same refresh: Instagram `like_count` (omitted when the owner hid like counts), the Facebook post's Like total (Like reactions only), and the TikTok video's `likes`. Threads posts omit `likeCount`.\n\nPagination: `sortBy=date` pages in a stable order (`createdTime`, ties broken by when PostZen first stored the post) in either `sortOrder`. `minComments` is applied to each date-sorted page after pagination, so a page can hold fewer than `limit` posts, or none, while `hasMore` is true. `sortBy=comments` pages by the stored count, ties broken by `createdTime`, and applies `minComments` before pagination; with `since`, a page stops after scanning 1,000 stored posts and can come back short while `hasMore` is true. A count that changes between page requests can move a post to another page. `hasMore` can be true on the last page, in which case the next page is empty. A cursor is valid only with the `sortBy` and `sortOrder` it was issued for. Read-only and read-write API keys are accepted.",
+		"method": "GET",
+		"pathTemplate": "/v1/inbox/comments",
+		"positionals": [],
+		"flags": [
+			{
+				"name": "profileId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the read to accounts on one profile."
+			},
+			{
+				"name": "platform",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"instagram",
+						"facebook",
+						"threads",
+						"tiktok"
+					]
+				},
+				"description": "Restrict the read to one platform."
+			},
+			{
+				"name": "accountId",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Restrict the read to one connected account. An account on a platform the inbox does not cover returns `400 platformUnsupported`."
+			},
+			{
+				"name": "minComments",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"description": "Only posts whose stored `commentCount` is at least this. Posts without a count never match."
+			},
+			{
+				"name": "since",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"format": "date-time"
+				},
+				"description": "Only posts created after this time. A bare date is midnight UTC."
+			},
+			{
+				"name": "sortBy",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"date",
+						"comments"
+					],
+					"default": "date"
+				},
+				"description": "Order by `createdTime` (`date`) or by stored `commentCount` (`comments`)."
+			},
+			{
+				"name": "sortOrder",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"desc",
+						"asc"
+					],
+					"default": "desc"
+				},
+				"description": "Sort direction."
+			},
+			{
+				"name": "limit",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "integer",
+					"minimum": 1,
+					"maximum": 100,
+					"default": 50
+				},
+				"description": "Page size."
+			},
+			{
+				"name": "cursor",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string"
+				},
+				"description": "Opaque pagination cursor. Pass `pagination.nextCursor` from the previous response with the same `sortBy` and `sortOrder`."
+			},
+			{
+				"name": "view",
+				"in": "query",
+				"required": false,
+				"schema": {
+					"type": "string",
+					"enum": [
+						"full",
+						"summary"
+					],
+					"default": "full"
+				},
+				"description": "`summary` omits `picture` and cuts `content` to 280 characters, marking a cut caption with `contentTruncated: true`."
+			}
+		],
+		"bodyMode": null,
+		"bodyKeys": []
 	},
 	{
 		"name": "inbox:list-conversation-messages",
@@ -3549,7 +3740,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "list-post-comments",
 		"summary": "List comments on a post",
-		"description": "Returns the comments the platform holds for one Instagram, Facebook, or Threads post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram threads are only two levels deep, so a reply never carries replies of its own. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Attachment URLs are expiring Meta CDN links, so read the comment again for a fresh one. Read-only and read-write API keys are accepted.",
+		"description": "Returns the comments the platform holds for one Instagram, Facebook, Threads, or TikTok post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram and TikTok threads are only two levels deep, so a reply never carries replies of its own. TikTok returns replies separately: a TikTok comment with `replyCount` above zero has its replies listed through `commentId`. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Attachment URLs are expiring platform CDN links, so read the comment again for a fresh one. Read-only and read-write API keys are accepted.",
 		"method": "GET",
 		"pathTemplate": "/v1/inbox/comments/{postId}",
 		"positionals": [
@@ -3569,7 +3760,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 			},
 			{
 				"name": "limit",
@@ -3682,7 +3873,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "reply-to-post",
 		"summary": "Comment on a post or reply to a comment",
-		"description": "Publishes a comment on the post, or a reply to `commentId` when one is given. Requires a read-write API key and the account's comment-management scope; without the scope the call answers `403 platformCapabilityMissing` and nothing is sent to the platform. `attachmentUrl` is Facebook only — every other platform rejects it with `400 attachmentUnsupported`. Instagram is two levels deep, so replying to a reply is redirected to that reply's top-level parent. A Threads reply is created as a container and then published; when the publish is still pending after PostZen's internal retries the call returns `502 publishPending` and the reply may still appear on its own, so check the thread before retrying rather than posting twice.",
+		"description": "Publishes a comment on the post, or a reply to `commentId` when one is given. Requires a read-write API key and the account's comment-management scope; without the scope the call answers `403 platformCapabilityMissing` and nothing is sent to the platform. `attachmentUrl` is Facebook only — every other platform rejects it with `400 attachmentUnsupported`. Instagram and TikTok are two levels deep, so replying to a reply is redirected to that reply's top-level parent. TikTok comments are limited to 1,200 characters. A Threads reply is created as a container and then published; when the publish is still pending after PostZen's internal retries the call returns `502 publishPending` and the reply may still appear on its own, so check the thread before retrying rather than posting twice.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/comments/{postId}",
 		"positionals": [
@@ -3701,9 +3892,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": true,
 				"schema": {
 					"type": "string",
-					"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+					"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 				},
-				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 			},
 			{
 				"name": "message",
@@ -3721,9 +3912,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": false,
 				"schema": {
 					"type": "string",
-					"description": "Reply to this comment instead of commenting on the post. On Instagram a reply to a reply is redirected to its top-level parent."
+					"description": "Reply to this comment instead of commenting on the post. On Instagram and TikTok a reply to a reply is redirected to its top-level parent."
 				},
-				"description": "Reply to this comment instead of commenting on the post. On Instagram a reply to a reply is redirected to its top-level parent."
+				"description": "Reply to this comment instead of commenting on the post. On Instagram and TikTok a reply to a reply is redirected to its top-level parent."
 			},
 			{
 				"name": "attachmentUrl",
@@ -3840,7 +4031,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "send-comment-private-reply",
 		"summary": "Send a private reply to a comment",
-		"description": "Sends the commenter one direct message addressed to their comment, so it reaches their inbox without an existing conversation. Works for Instagram accounts and Facebook Pages. Meta allows one private reply per comment, sent within 7 days of the comment; a second attempt, or a comment Meta will not take a private reply for, answers `400 privateReplyConsumed`. The body is `message` with optional `quickReplies` or `buttons` (not both), under the same rules as `POST /v1/inbox/conversations/{conversationId}/messages`; attachments, templates and message tags are refused with a 400. Until the person answers, this reply is the only message the account can send them. When PostZen already holds a conversation with the commenter the reply is stored in it, and `message.sent` is emitted once. Needs the account's messaging scope (`pages_messaging` on a Facebook Page) and counts toward the plan's monthly inbox send allowance. Shares the direct message send limit of 120 per hour per user. Requires a read-write API key.",
+		"description": "Sends the commenter one direct message addressed to their comment, so it reaches their inbox without an existing conversation. Works for Instagram accounts and Facebook Pages; Threads and TikTok accounts answer `400 platformUnsupported`. Meta allows one private reply per comment, sent within 7 days of the comment; a second attempt, or a comment Meta will not take a private reply for, answers `400 privateReplyConsumed`. The body is `message` with optional `quickReplies` or `buttons` (not both), under the same rules as `POST /v1/inbox/conversations/{conversationId}/messages`; attachments, templates and message tags are refused with a 400. Until the person answers, this reply is the only message the account can send them. When PostZen already holds a conversation with the commenter the reply is stored in it, and `message.sent` is emitted once. Needs the account's messaging scope (`pages_messaging` on a Facebook Page) and counts toward the plan's monthly inbox send allowance. Shares the direct message send limit of 120 per hour per user. Requires a read-write API key.",
 		"method": "POST",
 		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/private-reply",
 		"positionals": [
@@ -4479,7 +4670,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "unhide-comment",
 		"summary": "Unhide a comment",
-		"description": "Restores a hidden comment. Requires a read-write API key and the account's comment-management scope. On Threads, unhiding a top-level reply also restores the replies beneath it.",
+		"description": "Restores a hidden comment. Requires a read-write API key and the account's comment-management scope. On Threads, unhiding a top-level reply also restores the replies beneath it. TikTok can report success on an unhide that has not taken effect yet; the next read shows the actual state.",
 		"method": "DELETE",
 		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/hide",
 		"positionals": [
@@ -4506,7 +4697,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+				"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 			}
 		],
 		"bodyMode": null,
@@ -4517,7 +4708,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "inbox",
 		"action": "unlike-comment",
 		"summary": "Unlike a comment",
-		"description": "Removes the connected Facebook Page's like from a comment. Facebook Pages only: Instagram and Threads answer `400 unsupported`. Requires a read-write API key and the Page's comment-management scope. Limited to 120 per hour per user, shared with liking.",
+		"description": "Removes the connected Facebook Page's or TikTok account's like from a comment. Facebook Pages and TikTok accounts only: Instagram and Threads answer `400 unsupported`. Requires a read-write API key and the account's comment-management scope. Limited to 120 per hour per user, shared with liking.",
 		"method": "DELETE",
 		"pathTemplate": "/v1/inbox/comments/{postId}/{commentId}/like",
 		"positionals": [
@@ -4544,7 +4735,7 @@ export const generatedCommands: GeneratedCommand[] = [
 				"schema": {
 					"type": "string"
 				},
-				"description": "PostZen account id of the connected Facebook Page that owns the post."
+				"description": "PostZen account id of the connected Facebook Page or TikTok account that owns the post."
 			}
 		],
 		"bodyMode": null,

@@ -39,7 +39,7 @@
 		},
 		{
 			"name": "Inbox",
-			"description": "Read and moderate comments on Instagram, Facebook, and Threads posts, like Facebook comments, and answer an Instagram or Facebook comment with a private reply. Every endpoint takes the connected account as `accountId` and identifies the post either by its PostZen post id or by the platform's own post/media id. Reads also refresh PostZen's stored copy of the thread. An account on any other platform returns `400 platformUnsupported`, and the write endpoints need the account's comment-management scope — reconnect the account when they answer `403 platformCapabilityMissing`. The conversation endpoints cover direct messages on Instagram and on Facebook Pages (Messenger) instead: they read PostZen’s synced copy of each thread, refresh it from the platform as a side effect, and keep read state and archive state locally because Meta exposes neither. Sending is bounded by Meta’s 24-hour reply window, which surfaces as `400 PLATFORM_LIMITATION`."
+			"description": "Read and moderate comments on Instagram, Facebook, Threads, and TikTok posts, like Facebook and TikTok comments, and answer an Instagram or Facebook comment with a private reply. `GET /v1/inbox/comments` lists posts with comment counts across accounts; every other endpoint takes the connected account as `accountId` and identifies the post either by its PostZen post id or by the platform's own post/media id. Reads also refresh PostZen's stored copy of the thread. TikTok comments need an account connected through PostZen's TikTok for Business app (`connectionLane: business` on the account); a TikTok account connected earlier, or an account on any other platform, returns `400 platformUnsupported` (reconnecting moves a TikTok account to the Business app), and the write endpoints need the account's comment-management scope — reconnect the account when they answer `403 platformCapabilityMissing`. The conversation endpoints cover direct messages on Instagram and on Facebook Pages (Messenger) instead: they read PostZen’s synced copy of each thread, refresh it from the platform as a side effect, and keep read state and archive state locally because Meta exposes neither. Sending is bounded by Meta’s 24-hour reply window, which surfaces as `400 PLATFORM_LIMITATION`."
 		},
 		{
 			"name": "Comment Automations",
@@ -1040,7 +1040,7 @@
 				],
 				"operationId": "createConnectUrl",
 				"summary": "Create an OAuth connect URL",
-				"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.\n\nFor `telegram`, the returned `authUrl` is a PostZen-hosted page that issues a short-lived access code (there is no OAuth grant and no Telegram authorization screen); the connection completes when the user adds @PostZenScheduleBot as an administrator of a channel or group and sends that code to the bot.\n\nTo reauthorize an existing account, pass `accountId` instead of `profileId`. The flow is pinned to that account: the user must authorize the same provider account, and the account keeps its id, profile, scheduled posts and comment automations. Reauthorizing an account whose status is `connected` or `needsReauth` does not count against your plan's included accounts. Disconnecting and connecting again instead creates a new account id and cancels the account's pending posts, so prefer `accountId`.",
+				"description": "Initiates an OAuth connection flow and returns an authorization URL to redirect the user to. The OAuth state expires after 10 minutes. This endpoint requires a read-write API key.\n\nFor `bluesky`, the returned `authUrl` is a PostZen-hosted page where the user enters their Bluesky handle and app password (no developer app or OAuth redirect is required); the connection completes when they submit that form.\n\nFor `telegram`, the returned `authUrl` is a PostZen-hosted page that issues a short-lived access code (there is no OAuth grant and no Telegram authorization screen); the connection completes when the user adds @PostZenScheduleBot as an administrator of a channel or group and sends that code to the bot.\n\nTo reauthorize an existing account, pass `accountId` instead of `profileId`. The flow is pinned to that account: the user must authorize the same provider account, and the account keeps its id, profile, scheduled posts and comment automations. Reauthorizing an account whose status is `connected` or `needsReauth` does not count against your plan's included accounts. Disconnecting and connecting again instead creates a new account id and cancels the account's pending posts, so prefer `accountId`.\n\nFor `tiktok`, new connections use PostZen's TikTok for Business app. Reconnecting an account that was connected earlier moves it to that app in place: pass its `accountId`, or connect in the same profile and PostZen moves the account whose display name matches. After a move the redirect may carry `affected_scheduled_videos`, the number of scheduled videos that are not public and will fail until they are set to public or sent as drafts. A TikTok connect can fail with `error=missing_tiktok_permissions` (with `missing_scopes`), `tiktok_account_mismatch`, `tiktok_publish_in_progress`, or `tiktok_account_already_connected`; none of them changes the existing account.",
 				"parameters": [
 					{
 						"name": "profileId",
@@ -2230,6 +2230,242 @@
 				}
 			}
 		},
+		"/v1/inbox/comments": {
+			"get": {
+				"tags": [
+					"Inbox"
+				],
+				"operationId": "listInboxComments",
+				"summary": "List commented posts",
+				"description": "Returns posts with their comment counts across the connected Instagram, Facebook, Threads, and TikTok accounts the key can reach, including posts published outside PostZen. Use a post's `id` with its `accountId` on `GET /v1/inbox/comments/{postId}` to read its comments.\n\nRead-through: on a request without `cursor`, each in-scope account whose stored post list is older than 5 minutes is refreshed from the platform (its newest 50 posts), at most 10 accounts per request, stalest first and 3 at a time; the rest are answered from stored posts and refresh on a later request. Requests with `cursor` read stored posts only. A refresh failure does not fail the request: the account appears in `meta.failedAccounts` and its stored posts are still returned. Accounts that need reauthorization are reported there with code `connection_dead` and are not refreshed.\n\nTikTok covers accounts connected through the TikTok for Business app only (`connectionLane: business` on the account). Other TikTok accounts are never queried and are listed in `meta.accountsSkipped`.\n\n`commentCount` is the count the platform reported at the last refresh: Instagram `comments_count`, the Facebook post's comment summary total, and the TikTok video's `comments`. Threads reports no count, so Threads posts omit `commentCount`, sort after every counted post under `sortBy=comments` (`desc`), and never match `minComments`. `likeCount` comes from the same refresh: Instagram `like_count` (omitted when the owner hid like counts), the Facebook post's Like total (Like reactions only), and the TikTok video's `likes`. Threads posts omit `likeCount`.\n\nPagination: `sortBy=date` pages in a stable order (`createdTime`, ties broken by when PostZen first stored the post) in either `sortOrder`. `minComments` is applied to each date-sorted page after pagination, so a page can hold fewer than `limit` posts, or none, while `hasMore` is true. `sortBy=comments` pages by the stored count, ties broken by `createdTime`, and applies `minComments` before pagination; with `since`, a page stops after scanning 1,000 stored posts and can come back short while `hasMore` is true. A count that changes between page requests can move a post to another page. `hasMore` can be true on the last page, in which case the next page is empty. A cursor is valid only with the `sortBy` and `sortOrder` it was issued for. Read-only and read-write API keys are accepted.",
+				"parameters": [
+					{
+						"name": "profileId",
+						"in": "query",
+						"description": "Restrict the read to accounts on one profile.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "platform",
+						"in": "query",
+						"description": "Restrict the read to one platform.",
+						"schema": {
+							"type": "string",
+							"enum": [
+								"instagram",
+								"facebook",
+								"threads",
+								"tiktok"
+							]
+						}
+					},
+					{
+						"name": "accountId",
+						"in": "query",
+						"description": "Restrict the read to one connected account. An account on a platform the inbox does not cover returns `400 platformUnsupported`.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "minComments",
+						"in": "query",
+						"description": "Only posts whose stored `commentCount` is at least this. Posts without a count never match.",
+						"schema": {
+							"type": "integer",
+							"minimum": 0
+						}
+					},
+					{
+						"name": "since",
+						"in": "query",
+						"description": "Only posts created after this time. A bare date is midnight UTC.",
+						"schema": {
+							"type": "string",
+							"format": "date-time"
+						}
+					},
+					{
+						"name": "sortBy",
+						"in": "query",
+						"description": "Order by `createdTime` (`date`) or by stored `commentCount` (`comments`).",
+						"schema": {
+							"type": "string",
+							"enum": [
+								"date",
+								"comments"
+							],
+							"default": "date"
+						}
+					},
+					{
+						"name": "sortOrder",
+						"in": "query",
+						"description": "Sort direction.",
+						"schema": {
+							"type": "string",
+							"enum": [
+								"desc",
+								"asc"
+							],
+							"default": "desc"
+						}
+					},
+					{
+						"name": "limit",
+						"in": "query",
+						"description": "Page size.",
+						"schema": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 100,
+							"default": 50
+						}
+					},
+					{
+						"name": "cursor",
+						"in": "query",
+						"description": "Opaque pagination cursor. Pass `pagination.nextCursor` from the previous response with the same `sortBy` and `sortOrder`.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "view",
+						"in": "query",
+						"description": "`summary` omits `picture` and cuts `content` to 280 characters, marking a cut caption with `contentTruncated: true`.",
+						"schema": {
+							"type": "string",
+							"enum": [
+								"full",
+								"summary"
+							],
+							"default": "full"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Posts returned.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InboxCommentedPostsResponse"
+								},
+								"example": {
+									"data": [
+										{
+											"id": "17895695668004550",
+											"platform": "instagram",
+											"accountId": "k17d8s9f0a1b2c3d4e5f6g7h8i",
+											"accountUsername": "postzenhq",
+											"content": "Three ways to batch a week of posts in one sitting.",
+											"picture": "https://scontent.cdninstagram.com/v/t51.2885-15/post.jpg",
+											"permalink": "https://www.instagram.com/p/CxYzAbCdEfG/",
+											"createdTime": "2026-11-10T16:04:12.000Z",
+											"commentCount": 14
+										}
+									],
+									"pagination": {
+										"hasMore": true,
+										"nextCursor": "dd:[1762790652000,1762790700123.4,\"j57a...\"]"
+									},
+									"meta": {
+										"accountsQueried": 3,
+										"accountsFailed": 1,
+										"failedAccounts": [
+											{
+												"accountId": "k27e9t0g1b2c3d4e5f6g7h8i9j",
+												"accountUsername": "@postzen",
+												"platform": "tiktok",
+												"error": "TikTok rate limit reached for this account.",
+												"code": "40100",
+												"retryAfter": 30
+											}
+										],
+										"lastUpdated": "2026-11-12T09:15:00.000Z",
+										"accountsSkipped": [
+											{
+												"accountId": "k37f0u1h2c3d4e5f6g7h8i9j0k",
+												"platform": "tiktok"
+											}
+										]
+									}
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "A parameter is malformed (bad enum, date, `limit`, or `minComments`) — a plain `{ error }` body — the cursor does not belong to this `sortBy`/`sortOrder` (`invalidCursor`), or `accountId` names an account on a platform the inbox does not cover (`platformUnsupported`).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InboxErrorResponse"
+								},
+								"example": {
+									"error": "The inbox supports Instagram, Facebook, Threads and TikTok accounts only.",
+									"code": "platformUnsupported",
+									"platform": "linkedin"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorized"
+					},
+					"403": {
+						"description": "`profileId` or `accountId` is outside the API key's profile access (`profile_forbidden` or `forbidden`).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InboxErrorResponse"
+								},
+								"example": {
+									"error": "That account is outside this key’s profile access.",
+									"code": "forbidden"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "`accountId` names no account the key's owner has (`accountNotFound`).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InboxErrorResponse"
+								},
+								"example": {
+									"error": "That account could not be found.",
+									"code": "accountNotFound"
+								}
+							}
+						}
+					},
+					"424": {
+						"description": "`accountId` names a disconnected or disabled account (`connectionDead`).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/InboxErrorResponse"
+								},
+								"example": {
+									"error": "This connection needs to be reauthorized before its comments can be read.",
+									"code": "connectionDead"
+								}
+							}
+						}
+					},
+					"429": {
+						"$ref": "#/components/responses/TooManyRequests"
+					},
+					"500": {
+						"$ref": "#/components/responses/InternalError"
+					}
+				}
+			}
+		},
 		"/v1/inbox/comments/{postId}": {
 			"parameters": [
 				{
@@ -2248,13 +2484,13 @@
 				],
 				"operationId": "listInboxPostComments",
 				"summary": "List comments on a post",
-				"description": "Returns the comments the platform holds for one Instagram, Facebook, or Threads post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram threads are only two levels deep, so a reply never carries replies of its own. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Attachment URLs are expiring Meta CDN links, so read the comment again for a fresh one. Read-only and read-write API keys are accepted.",
+				"description": "Returns the comments the platform holds for one Instagram, Facebook, Threads, or TikTok post, and refreshes PostZen's stored copy of the thread as a side effect. `replies` carries the first page of nested replies when the platform returns them cheaply — `repliesHasMore` says when it did not, and passing that comment's id as `commentId` pages through the rest. Instagram and TikTok threads are only two levels deep, so a reply never carries replies of its own. TikTok returns replies separately: a TikTok comment with `replyCount` above zero has its replies listed through `commentId`. Fields a platform does not report are absent rather than zero: Threads, for example, never reports per-reply like counts. Attachment URLs are expiring platform CDN links, so read the comment again for a fresh one. Read-only and read-write API keys are accepted.",
 				"parameters": [
 					{
 						"name": "accountId",
 						"in": "query",
 						"required": true,
-						"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post.",
+						"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post.",
 						"schema": {
 							"type": "string"
 						}
@@ -2364,7 +2600,7 @@
 									"$ref": "#/components/schemas/InboxErrorResponse"
 								},
 								"example": {
-									"error": "The inbox supports Instagram, Facebook and Threads accounts only.",
+									"error": "The inbox supports Instagram, Facebook, Threads and TikTok accounts only.",
 									"code": "platformUnsupported",
 									"platform": "tiktok"
 								}
@@ -2419,7 +2655,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2461,7 +2697,7 @@
 				],
 				"operationId": "replyToInboxPost",
 				"summary": "Comment on a post or reply to a comment",
-				"description": "Publishes a comment on the post, or a reply to `commentId` when one is given. Requires a read-write API key and the account's comment-management scope; without the scope the call answers `403 platformCapabilityMissing` and nothing is sent to the platform. `attachmentUrl` is Facebook only — every other platform rejects it with `400 attachmentUnsupported`. Instagram is two levels deep, so replying to a reply is redirected to that reply's top-level parent. A Threads reply is created as a container and then published; when the publish is still pending after PostZen's internal retries the call returns `502 publishPending` and the reply may still appear on its own, so check the thread before retrying rather than posting twice.",
+				"description": "Publishes a comment on the post, or a reply to `commentId` when one is given. Requires a read-write API key and the account's comment-management scope; without the scope the call answers `403 platformCapabilityMissing` and nothing is sent to the platform. `attachmentUrl` is Facebook only — every other platform rejects it with `400 attachmentUnsupported`. Instagram and TikTok are two levels deep, so replying to a reply is redirected to that reply's top-level parent. TikTok comments are limited to 1,200 characters. A Threads reply is created as a container and then published; when the publish is still pending after PostZen's internal retries the call returns `502 publishPending` and the reply may still appear on its own, so check the thread before retrying rather than posting twice.",
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -2575,7 +2811,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2617,13 +2853,13 @@
 				],
 				"operationId": "deleteInboxComment",
 				"summary": "Delete a comment",
-				"description": "Deletes a comment. Requires a read-write API key and the account's comment-management scope. `canDelete` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only allows deleting replies the connected account itself wrote.",
+				"description": "Deletes a comment. Requires a read-write API key and the account's comment-management scope. `canDelete` on the comment says whether the platform allows it: Facebook reports it per comment, Threads only allows deleting replies the connected account itself wrote, and TikTok only the connected account's own comments; deleting someone else's TikTok comment answers `400 unsupported` without calling TikTok.",
 				"parameters": [
 					{
 						"name": "accountId",
 						"in": "query",
 						"required": true,
-						"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post.",
+						"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post.",
 						"schema": {
 							"type": "string"
 						}
@@ -2656,14 +2892,14 @@
 						}
 					},
 					"400": {
-						"description": "A parameter is missing or malformed — a plain `{ error }` body — or the account is not on a platform the inbox supports (`platformUnsupported`). A platform-rejected identifier or parameter also lands here, with `platformError` carrying the platform's wording.",
+						"description": "A parameter is missing or malformed — a plain `{ error }` body — the account is not on a platform the inbox supports (`platformUnsupported`), or the comment is someone else's TikTok comment (`unsupported`). A platform-rejected identifier or parameter also lands here, with `platformError` carrying the platform's wording.",
 						"content": {
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/InboxErrorResponse"
 								},
 								"example": {
-									"error": "The inbox supports Instagram, Facebook and Threads accounts only.",
+									"error": "The inbox supports Instagram, Facebook, Threads and TikTok accounts only.",
 									"code": "platformUnsupported",
 									"platform": "tiktok"
 								}
@@ -2718,7 +2954,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2782,7 +3018,7 @@
 				],
 				"operationId": "hideInboxComment",
 				"summary": "Hide a comment",
-				"description": "Hides a comment so only its author still sees it. Requires a read-write API key and the account's comment-management scope. `canHide` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only supports hiding top-level replies on the connected account's own posts — hiding one there also hides the replies beneath it.",
+				"description": "Hides a comment so only its author still sees it. Requires a read-write API key and the account's comment-management scope. `canHide` on the comment says whether the platform allows it: Facebook reports it per comment, and Threads only supports hiding top-level replies on the connected account's own posts — hiding one there also hides the replies beneath it. TikTok hides only other people's comments; hiding the connected account's own TikTok comment answers `400 unsupported` without calling TikTok.",
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -2814,14 +3050,14 @@
 						}
 					},
 					"400": {
-						"description": "A parameter is missing or malformed — a plain `{ error }` body — or the account is not on a platform the inbox supports (`platformUnsupported`). A platform-rejected identifier or parameter also lands here, with `platformError` carrying the platform's wording.",
+						"description": "A parameter is missing or malformed — a plain `{ error }` body — the account is not on a platform the inbox supports (`platformUnsupported`), or the comment is the connected account's own TikTok comment (`unsupported`). A platform-rejected identifier or parameter also lands here, with `platformError` carrying the platform's wording.",
 						"content": {
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/InboxErrorResponse"
 								},
 								"example": {
-									"error": "The inbox supports Instagram, Facebook and Threads accounts only.",
+									"error": "The inbox supports Instagram, Facebook, Threads and TikTok accounts only.",
 									"code": "platformUnsupported",
 									"platform": "tiktok"
 								}
@@ -2876,7 +3112,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2918,13 +3154,13 @@
 				],
 				"operationId": "unhideInboxComment",
 				"summary": "Unhide a comment",
-				"description": "Restores a hidden comment. Requires a read-write API key and the account's comment-management scope. On Threads, unhiding a top-level reply also restores the replies beneath it.",
+				"description": "Restores a hidden comment. Requires a read-write API key and the account's comment-management scope. On Threads, unhiding a top-level reply also restores the replies beneath it. TikTok can report success on an unhide that has not taken effect yet; the next read shows the actual state.",
 				"parameters": [
 					{
 						"name": "accountId",
 						"in": "query",
 						"required": true,
-						"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post.",
+						"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post.",
 						"schema": {
 							"type": "string"
 						}
@@ -2955,7 +3191,7 @@
 									"$ref": "#/components/schemas/InboxErrorResponse"
 								},
 								"example": {
-									"error": "The inbox supports Instagram, Facebook and Threads accounts only.",
+									"error": "The inbox supports Instagram, Facebook, Threads and TikTok accounts only.",
 									"code": "platformUnsupported",
 									"platform": "tiktok"
 								}
@@ -3010,7 +3246,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3074,7 +3310,7 @@
 				],
 				"operationId": "likeInboxComment",
 				"summary": "Like a comment",
-				"description": "Likes a comment as the connected Facebook Page. Facebook Pages only: Instagram and Threads have no comment-like API and answer `400 unsupported`, which reconnecting does not change. `canLike` on the comment says whether the call can succeed, and `isLiked` reflects the result after the next read. Requires a read-write API key and the Page's comment-management scope. Limited to 120 per hour per user, shared with unliking.",
+				"description": "Likes a comment as the connected Facebook Page or TikTok account. Facebook Pages and TikTok accounts only: Instagram and Threads have no comment-like API and answer `400 unsupported`, which reconnecting does not change. `canLike` on the comment says whether the call can succeed, and `isLiked` reflects the result after the next read. Requires a read-write API key and the account's comment-management scope. Limited to 120 per hour per user, shared with unliking.",
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -3113,7 +3349,7 @@
 									"$ref": "#/components/schemas/InboxErrorResponse"
 								},
 								"example": {
-									"error": "Liking comments is supported for Facebook accounts only.",
+									"error": "Liking comments is supported for Facebook and TikTok accounts only.",
 									"code": "unsupported",
 									"platform": "instagram"
 								}
@@ -3168,7 +3404,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3210,13 +3446,13 @@
 				],
 				"operationId": "unlikeInboxComment",
 				"summary": "Unlike a comment",
-				"description": "Removes the connected Facebook Page's like from a comment. Facebook Pages only: Instagram and Threads answer `400 unsupported`. Requires a read-write API key and the Page's comment-management scope. Limited to 120 per hour per user, shared with liking.",
+				"description": "Removes the connected Facebook Page's or TikTok account's like from a comment. Facebook Pages and TikTok accounts only: Instagram and Threads answer `400 unsupported`. Requires a read-write API key and the account's comment-management scope. Limited to 120 per hour per user, shared with liking.",
 				"parameters": [
 					{
 						"name": "accountId",
 						"in": "query",
 						"required": true,
-						"description": "PostZen account id of the connected Facebook Page that owns the post.",
+						"description": "PostZen account id of the connected Facebook Page or TikTok account that owns the post.",
 						"schema": {
 							"type": "string"
 						}
@@ -3247,7 +3483,7 @@
 									"$ref": "#/components/schemas/InboxErrorResponse"
 								},
 								"example": {
-									"error": "Liking comments is supported for Facebook accounts only.",
+									"error": "Liking comments is supported for Facebook and TikTok accounts only.",
 									"code": "unsupported",
 									"platform": "instagram"
 								}
@@ -3302,7 +3538,7 @@
 						}
 					},
 					"429": {
-						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
+						"description": "The platform rate limited the upstream request; `platformError` carries its wording and `Retry-After` gives the wait in seconds. TikTok throttling, including PostZen's per-account TikTok request budget, answers with the plain rate-limit body instead. PostZen's own per-key and per-operation limiters also return `429`, with the plain body `{\"error\":\"rate_limited\",\"retryAfter\":<seconds>}`.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3366,7 +3602,7 @@
 				],
 				"operationId": "sendInboxCommentPrivateReply",
 				"summary": "Send a private reply to a comment",
-				"description": "Sends the commenter one direct message addressed to their comment, so it reaches their inbox without an existing conversation. Works for Instagram accounts and Facebook Pages. Meta allows one private reply per comment, sent within 7 days of the comment; a second attempt, or a comment Meta will not take a private reply for, answers `400 privateReplyConsumed`. The body is `message` with optional `quickReplies` or `buttons` (not both), under the same rules as `POST /v1/inbox/conversations/{conversationId}/messages`; attachments, templates and message tags are refused with a 400. Until the person answers, this reply is the only message the account can send them. When PostZen already holds a conversation with the commenter the reply is stored in it, and `message.sent` is emitted once. Needs the account's messaging scope (`pages_messaging` on a Facebook Page) and counts toward the plan's monthly inbox send allowance. Shares the direct message send limit of 120 per hour per user. Requires a read-write API key.",
+				"description": "Sends the commenter one direct message addressed to their comment, so it reaches their inbox without an existing conversation. Works for Instagram accounts and Facebook Pages; Threads and TikTok accounts answer `400 platformUnsupported`. Meta allows one private reply per comment, sent within 7 days of the comment; a second attempt, or a comment Meta will not take a private reply for, answers `400 privateReplyConsumed`. The body is `message` with optional `quickReplies` or `buttons` (not both), under the same rules as `POST /v1/inbox/conversations/{conversationId}/messages`; attachments, templates and message tags are refused with a 400. Until the person answers, this reply is the only message the account can send them. When PostZen already holds a conversation with the commenter the reply is stored in it, and `message.sent` is emitted once. Needs the account's messaging scope (`pages_messaging` on a Facebook Page) and counts toward the plan's monthly inbox send allowance. Shares the direct message send limit of 120 per hour per user. Requires a read-write API key.",
 				"parameters": [
 					{
 						"name": "Idempotency-Key",
@@ -5970,6 +6206,88 @@
 							"application/json": {
 								"schema": {
 									"$ref": "#/components/schemas/BestTimeResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorized"
+					},
+					"402": {
+						"description": "Analytics entitlement required.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"$ref": "#/components/responses/Forbidden"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"429": {
+						"$ref": "#/components/responses/TooManyRequests"
+					},
+					"500": {
+						"$ref": "#/components/responses/InternalError"
+					}
+				}
+			}
+		},
+		"/v1/analytics/account-insights": {
+			"get": {
+				"tags": [
+					"Analytics"
+				],
+				"operationId": "getAccountInsights",
+				"summary": "Get account insights",
+				"description": "Daily profile activity and audience for a TikTok account connected through the TikTok Business app. Other accounts return 400 with code platformUnsupported.",
+				"security": [
+					{
+						"bearerAuth": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "accountId",
+						"in": "query",
+						"required": true,
+						"description": "Connected account id.",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "fromDate",
+						"in": "query",
+						"description": "Inclusive range start. Defaults to 30 days before `toDate`. The range may span at most 366 days, and `toDate` defaults to now, so an older `fromDate` needs a `toDate` within 366 days of it.",
+						"schema": {
+							"$ref": "#/components/schemas/AnalyticsDate"
+						}
+					},
+					{
+						"name": "toDate",
+						"in": "query",
+						"description": "Inclusive range end. Defaults to the current time. Must be no more than 366 days after `fromDate`.",
+						"schema": {
+							"$ref": "#/components/schemas/AnalyticsDate"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Account insights returned.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AccountInsightsResponse"
 								}
 							}
 						}
@@ -9852,6 +10170,22 @@
 								"type": "number",
 								"description": "Instagram Reels only. Total time spent playing the Reel across all plays, including replays, in milliseconds. Omitted and carried over under the same conditions as `skipRate`."
 							},
+							"completionRate": {
+								"type": "number",
+								"description": "Share of views that watched the video to the end, from 0 to 100. Reported for TikTok accounts on a TikTok for Business connection; absent otherwise."
+							},
+							"newFollowers": {
+								"type": "number",
+								"description": "Followers gained from this post. Reported for TikTok accounts on a TikTok for Business connection; absent otherwise."
+							},
+							"insights": {
+								"allOf": [
+									{
+										"$ref": "#/components/schemas/VideoInsights"
+									}
+								],
+								"description": "Traffic sources, retention curve, and viewer gender and country for one TikTok post. Returned only when a single post is requested with `postId`, and only for a TikTok for Business connection."
+							},
 							"lastUpdated": {
 								"type": [
 									"string",
@@ -10863,6 +11197,13 @@
 					"defaultBoardName": {
 						"type": "string",
 						"description": "Default Pinterest board name. Present when Pinterest returned a name for the selected default board."
+					},
+					"connectionLane": {
+						"type": "string",
+						"enum": [
+							"business"
+						],
+						"description": "TikTok only. `business` when the account is connected through PostZen's TikTok for Business app, which every new TikTok connection uses. Absent for a TikTok account connected earlier and for every other platform. The lane decides video privacy, comments, and insights; see the TikTok platform guide."
 					}
 				}
 			},
@@ -11096,7 +11437,7 @@
 			},
 			"InboxComment": {
 				"type": "object",
-				"description": "A comment or reply normalized to one shape across Instagram, Facebook, and Threads. A field the platform does not report is absent rather than zero.",
+				"description": "A comment or reply normalized to one shape across Instagram, Facebook, Threads, and TikTok. A field the platform does not report is absent rather than zero.",
 				"required": [
 					"id",
 					"message",
@@ -11165,7 +11506,8 @@
 						"enum": [
 							"instagram",
 							"facebook",
-							"threads"
+							"threads",
+							"tiktok"
 						],
 						"description": "Platform the comment lives on."
 					},
@@ -11179,7 +11521,7 @@
 						"items": {
 							"$ref": "#/components/schemas/InboxComment"
 						},
-						"description": "First page of nested replies, when the listing returned them cheaply. Instagram threads are two levels deep, so a reply's own `replies` is always empty."
+						"description": "First page of nested replies, when the listing returned them cheaply. Instagram and TikTok threads are two levels deep, so a reply's own `replies` is always empty. TikTok comments arrive without inline replies; list them with `commentId`."
 					},
 					"repliesHasMore": {
 						"type": "boolean",
@@ -11191,23 +11533,23 @@
 					},
 					"canDelete": {
 						"type": "boolean",
-						"description": "True when this comment can be deleted. Facebook reports it per comment; Threads reports it only for replies the connected account wrote."
+						"description": "True when this comment can be deleted. Facebook reports it per comment; Threads reports it only for replies the connected account wrote; TikTok only for the connected account's own comments."
 					},
 					"canHide": {
 						"type": "boolean",
-						"description": "True when this comment can be hidden. Facebook reports it per comment; on Threads only top-level replies on the account's own posts qualify."
+						"description": "True when this comment can be hidden. Facebook reports it per comment; on Threads only top-level replies on the account's own posts qualify; on TikTok only other people's comments."
 					},
 					"isHidden": {
 						"type": "boolean",
-						"description": "True when the comment is currently hidden. Threads' `HIDDEN` and `COVERED` states both map to true."
+						"description": "True when the comment is currently hidden. Threads' `HIDDEN` and `COVERED` states both map to true, and TikTok's `HIDDEN` includes comments TikTok hid for moderation or privacy."
 					},
 					"canLike": {
 						"type": "boolean",
-						"description": "True when the connected account can like this comment. Only Facebook Pages can, so it is always false on Instagram and Threads."
+						"description": "True when the connected account can like this comment. Only Facebook Pages and TikTok accounts can, so it is always false on Instagram and Threads."
 					},
 					"isLiked": {
 						"type": "boolean",
-						"description": "Facebook only: true when the connected Page itself likes the comment. Absent when the platform did not say."
+						"description": "Facebook and TikTok only: true when the connected Page or TikTok account itself likes the comment. Absent when the platform did not say."
 					},
 					"attachment": {
 						"$ref": "#/components/schemas/InboxCommentAttachment",
@@ -11224,7 +11566,7 @@
 			},
 			"InboxCommentAttachment": {
 				"type": "object",
-				"description": "Media attached to a comment. The URLs are expiring Meta CDN links; read the comment again for a fresh one.",
+				"description": "Media attached to a comment. The URLs are expiring platform CDN links (TikTok reports images only); read the comment again for a fresh one.",
 				"required": [
 					"type"
 				],
@@ -11301,7 +11643,8 @@
 								"enum": [
 									"instagram",
 									"facebook",
-									"threads"
+									"threads",
+									"tiktok"
 								],
 								"description": "Platform the comment lives on."
 							},
@@ -11331,7 +11674,7 @@
 				"properties": {
 					"accountId": {
 						"type": "string",
-						"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+						"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 					},
 					"message": {
 						"type": "string",
@@ -11339,7 +11682,7 @@
 					},
 					"commentId": {
 						"type": "string",
-						"description": "Reply to this comment instead of commenting on the post. On Instagram a reply to a reply is redirected to its top-level parent."
+						"description": "Reply to this comment instead of commenting on the post. On Instagram and TikTok a reply to a reply is redirected to its top-level parent."
 					},
 					"attachmentUrl": {
 						"type": "string",
@@ -11386,7 +11729,7 @@
 				"properties": {
 					"accountId": {
 						"type": "string",
-						"description": "PostZen account id of the connected Instagram, Facebook, or Threads account that owns the post."
+						"description": "PostZen account id of the connected Instagram, Facebook, Threads, or TikTok account that owns the post."
 					}
 				}
 			},
@@ -11416,7 +11759,8 @@
 						"enum": [
 							"instagram",
 							"facebook",
-							"threads"
+							"threads",
+							"tiktok"
 						],
 						"description": "Platform the comment lives on."
 					}
@@ -11441,12 +11785,13 @@
 					},
 					"liked": {
 						"type": "boolean",
-						"description": "Whether the connected Page likes the comment after the call."
+						"description": "Whether the connected Page or TikTok account likes the comment after the call."
 					},
 					"platform": {
 						"type": "string",
 						"enum": [
-							"facebook"
+							"facebook",
+							"tiktok"
 						],
 						"description": "Platform the comment lives on."
 					}
@@ -11479,7 +11824,7 @@
 						"properties": {
 							"code": {
 								"type": "string",
-								"description": "Machine-readable failure reason. PostZen's own reasons are `accountNotFound`, `forbidden`, `platformUnsupported`, `platformCapabilityMissing`, `connectionDead`, `postNotFound`, `postNotPublished`, `attachmentUnsupported`, `unsupported` (the platform has no API for this action, such as liking an Instagram comment), and `publishPending` (Threads accepted the reply container but had not published it yet — the reply may still appear, so check the thread before retrying). Failures raised by the platform carry the platform's own error code instead, which for Meta is a numeric string such as `100` or `190`. Absent on plain parameter-validation errors and on PostZen's own rate-limit response."
+								"description": "Machine-readable failure reason. PostZen's own reasons are `accountNotFound`, `forbidden`, `platformUnsupported`, `platformCapabilityMissing`, `connectionDead`, `postNotFound`, `postNotPublished`, `attachmentUnsupported`, `unsupported` (the platform has no API for this action, such as liking an Instagram comment, or does not allow it on this comment, such as deleting someone else's TikTok comment), and `publishPending` (Threads accepted the reply container but had not published it yet — the reply may still appear, so check the thread before retrying). Failures raised by the platform carry the platform's own error code instead, which for Meta is a numeric string such as `100` or `190`. Absent on plain parameter-validation errors and on PostZen's own rate-limit response."
 							},
 							"platform": {
 								"type": "string",
@@ -11492,6 +11837,195 @@
 						}
 					}
 				]
+			},
+			"InboxCommentedPost": {
+				"type": "object",
+				"required": [
+					"id",
+					"platform",
+					"accountId",
+					"accountUsername",
+					"createdTime"
+				],
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "The platform's post id. Use it as `{postId}` on `GET /v1/inbox/comments/{postId}` with this `accountId`."
+					},
+					"platform": {
+						"type": "string",
+						"enum": [
+							"instagram",
+							"facebook",
+							"threads",
+							"tiktok"
+						]
+					},
+					"accountId": {
+						"type": "string"
+					},
+					"accountUsername": {
+						"type": "string"
+					},
+					"content": {
+						"type": "string",
+						"description": "Caption or text. Absent when the platform reports none."
+					},
+					"picture": {
+						"type": "string",
+						"description": "Thumbnail URL when known. Platform CDN links can expire. Absent in the summary view."
+					},
+					"contentTruncated": {
+						"type": "boolean",
+						"enum": [
+							true
+						],
+						"description": "Present, and true, only when the summary view cut `content`."
+					},
+					"permalink": {
+						"type": "string"
+					},
+					"createdTime": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"commentCount": {
+						"type": "integer",
+						"description": "Comment count the platform reported at the last refresh. Absent when the platform reports none (Threads)."
+					},
+					"likeCount": {
+						"type": "integer",
+						"description": "Likes on the post as the platform reported them at the last refresh: Instagram `like_count`, the Facebook post's `likes` summary total (Like reactions only, not other reactions), and the TikTok video's `likes`. Omitted for Threads, and for Instagram posts whose owner hid like counts. Never 0 for unknown."
+					}
+				}
+			},
+			"InboxCommentedPostsPagination": {
+				"type": "object",
+				"required": [
+					"hasMore"
+				],
+				"properties": {
+					"hasMore": {
+						"type": "boolean"
+					},
+					"nextCursor": {
+						"type": "string",
+						"description": "Present when `hasMore` is true."
+					}
+				}
+			},
+			"InboxCommentedPostsFailedAccount": {
+				"type": "object",
+				"required": [
+					"accountId",
+					"accountUsername",
+					"platform",
+					"error",
+					"code"
+				],
+				"properties": {
+					"accountId": {
+						"type": "string"
+					},
+					"accountUsername": {
+						"type": "string"
+					},
+					"platform": {
+						"type": "string",
+						"enum": [
+							"instagram",
+							"facebook",
+							"threads",
+							"tiktok"
+						]
+					},
+					"error": {
+						"type": "string",
+						"description": "Why the refresh failed, in PostZen or the platform’s own words."
+					},
+					"code": {
+						"type": "string",
+						"description": "`connection_dead` (reauthorize the account), `refresh_failed` (unexpected failure), another PostZen context code, or the platform's own error code."
+					},
+					"retryAfter": {
+						"type": "integer",
+						"description": "Seconds to wait before the account can be refreshed, when throttled."
+					}
+				}
+			},
+			"InboxCommentedPostsMeta": {
+				"type": "object",
+				"required": [
+					"accountsQueried",
+					"accountsFailed",
+					"failedAccounts",
+					"lastUpdated",
+					"accountsSkipped"
+				],
+				"description": "How the read-through refresh went. A failed account's stored posts are still returned.",
+				"properties": {
+					"accountsQueried": {
+						"type": "integer",
+						"description": "Accounts whose stored posts this page read."
+					},
+					"accountsFailed": {
+						"type": "integer"
+					},
+					"failedAccounts": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/InboxCommentedPostsFailedAccount"
+						}
+					},
+					"lastUpdated": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"accountsSkipped": {
+						"type": "array",
+						"description": "TikTok accounts not connected through the TikTok for Business app. Never queried; reconnecting moves them to the Business app.",
+						"items": {
+							"type": "object",
+							"required": [
+								"accountId",
+								"platform"
+							],
+							"properties": {
+								"accountId": {
+									"type": "string"
+								},
+								"platform": {
+									"type": "string",
+									"enum": [
+										"tiktok"
+									]
+								}
+							}
+						}
+					}
+				}
+			},
+			"InboxCommentedPostsResponse": {
+				"type": "object",
+				"required": [
+					"data",
+					"pagination",
+					"meta"
+				],
+				"properties": {
+					"data": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/InboxCommentedPost"
+						}
+					},
+					"pagination": {
+						"$ref": "#/components/schemas/InboxCommentedPostsPagination"
+					},
+					"meta": {
+						"$ref": "#/components/schemas/InboxCommentedPostsMeta"
+					}
+				}
 			},
 			"InboxConversation": {
 				"type": "object",
@@ -16925,6 +17459,383 @@
 					"errors",
 					"total"
 				]
+			},
+			"VideoInsights": {
+				"type": "object",
+				"description": "Per-video breakdowns for TikTok accounts connected through the TikTok Business app. Returned on single-post responses only. Percentages are 0 to 100; a list TikTok did not return is omitted.",
+				"required": [
+					"observedAt"
+				],
+				"properties": {
+					"impressionSources": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"source",
+								"percent"
+							],
+							"properties": {
+								"source": {
+									"type": "string"
+								},
+								"percent": {
+									"type": "number"
+								}
+							}
+						},
+						"description": "Where views came from, as slugs such as for_you, follow, search or hashtag."
+					},
+					"retention": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"second",
+								"percent"
+							],
+							"properties": {
+								"second": {
+									"type": "number"
+								},
+								"percent": {
+									"type": "number"
+								}
+							}
+						},
+						"description": "Share of viewers still watching at each second, at most 60 points."
+					},
+					"audienceGenders": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"gender",
+								"percent"
+							],
+							"properties": {
+								"gender": {
+									"type": "string"
+								},
+								"percent": {
+									"type": "number"
+								}
+							}
+						}
+					},
+					"audienceCountries": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"required": [
+								"country",
+								"percent"
+							],
+							"properties": {
+								"country": {
+									"type": "string"
+								},
+								"percent": {
+									"type": "number"
+								}
+							}
+						},
+						"description": "Top 10 viewer countries, ISO 3166-1 alpha-2."
+					},
+					"observedAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				}
+			},
+			"AccountInsightsResponse": {
+				"type": "object",
+				"required": [
+					"accountId",
+					"platform",
+					"connectionLane",
+					"dateRange",
+					"followers",
+					"daily",
+					"totals",
+					"audience",
+					"availability"
+				],
+				"properties": {
+					"accountId": {
+						"type": "string"
+					},
+					"platform": {
+						"type": "string",
+						"enum": [
+							"tiktok"
+						]
+					},
+					"connectionLane": {
+						"type": "string",
+						"enum": [
+							"business"
+						]
+					},
+					"dateRange": {
+						"type": "object",
+						"required": [
+							"from",
+							"to"
+						],
+						"properties": {
+							"from": {
+								"type": "string",
+								"format": "date"
+							},
+							"to": {
+								"type": "string",
+								"format": "date"
+							}
+						}
+					},
+					"followers": {
+						"type": [
+							"number",
+							"null"
+						]
+					},
+					"daily": {
+						"type": "array",
+						"description": "One entry per UTC day with data. A metric TikTok did not report for a day is omitted, never 0.",
+						"items": {
+							"type": "object",
+							"required": [
+								"date"
+							],
+							"properties": {
+								"date": {
+									"type": "string",
+									"format": "date"
+								},
+								"videoViews": {
+									"type": "number"
+								},
+								"profileViews": {
+									"type": "number"
+								},
+								"likes": {
+									"type": "number"
+								},
+								"comments": {
+									"type": "number"
+								},
+								"shares": {
+									"type": "number"
+								},
+								"uniqueVideoViews": {
+									"type": "number"
+								},
+								"newFollowers": {
+									"type": "number"
+								},
+								"lostFollowers": {
+									"type": "number"
+								},
+								"netFollowers": {
+									"type": "number"
+								},
+								"engagedAudience": {
+									"type": "number"
+								},
+								"bioLinkClicks": {
+									"type": "number"
+								},
+								"phoneNumberClicks": {
+									"type": "number"
+								},
+								"leadSubmissions": {
+									"type": "number"
+								},
+								"appDownloadClicks": {
+									"type": "number"
+								},
+								"emailClicks": {
+									"type": "number"
+								},
+								"addressClicks": {
+									"type": "number"
+								},
+								"activityByHour": {
+									"type": "array",
+									"items": {
+										"type": "number"
+									},
+									"description": "24 values, index = UTC hour."
+								}
+							}
+						}
+					},
+					"totals": {
+						"type": "object",
+						"description": "Sum of each metric over the range; omitted when no day reported it.",
+						"properties": {
+							"videoViews": {
+								"type": "number"
+							},
+							"profileViews": {
+								"type": "number"
+							},
+							"likes": {
+								"type": "number"
+							},
+							"comments": {
+								"type": "number"
+							},
+							"shares": {
+								"type": "number"
+							},
+							"uniqueVideoViews": {
+								"type": "number"
+							},
+							"newFollowers": {
+								"type": "number"
+							},
+							"lostFollowers": {
+								"type": "number"
+							},
+							"netFollowers": {
+								"type": "number"
+							},
+							"engagedAudience": {
+								"type": "number"
+							},
+							"bioLinkClicks": {
+								"type": "number"
+							},
+							"phoneNumberClicks": {
+								"type": "number"
+							},
+							"leadSubmissions": {
+								"type": "number"
+							},
+							"appDownloadClicks": {
+								"type": "number"
+							},
+							"emailClicks": {
+								"type": "number"
+							},
+							"addressClicks": {
+								"type": "number"
+							}
+						}
+					},
+					"audience": {
+						"type": [
+							"object",
+							"null"
+						],
+						"description": "Latest follower demographics. TikTok returns them from 100 followers.",
+						"properties": {
+							"ages": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"age",
+										"percent"
+									],
+									"properties": {
+										"age": {
+											"type": "string"
+										},
+										"percent": {
+											"type": "number"
+										}
+									}
+								}
+							},
+							"genders": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"gender",
+										"percent"
+									],
+									"properties": {
+										"gender": {
+											"type": "string"
+										},
+										"percent": {
+											"type": "number"
+										}
+									}
+								}
+							},
+							"countries": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"country",
+										"percent"
+									],
+									"properties": {
+										"country": {
+											"type": "string"
+										},
+										"percent": {
+											"type": "number"
+										}
+									}
+								}
+							},
+							"cities": {
+								"type": "array",
+								"items": {
+									"type": "object",
+									"required": [
+										"city",
+										"percent"
+									],
+									"properties": {
+										"city": {
+											"type": "string"
+										},
+										"percent": {
+											"type": "number"
+										}
+									}
+								}
+							},
+							"observedAt": {
+								"type": "string",
+								"format": "date-time"
+							}
+						}
+					},
+					"availability": {
+						"type": "object",
+						"required": [
+							"daily",
+							"audience"
+						],
+						"properties": {
+							"daily": {
+								"type": "string",
+								"enum": [
+									"available",
+									"scope_missing"
+								]
+							},
+							"audience": {
+								"type": "string",
+								"enum": [
+									"available",
+									"insufficient_followers",
+									"scope_missing"
+								]
+							}
+						}
+					}
+				},
+				"description": "Daily profile activity, range totals, and the audience breakdown for a TikTok account on a TikTok for Business connection. A field TikTok did not report is omitted, never returned as 0; `availability` says why a section is empty."
 			}
 		}
 	}
