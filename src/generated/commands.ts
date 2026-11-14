@@ -971,7 +971,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "create-comment-automation",
 		"summary": "Create a comment automation",
-		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "POST",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -982,9 +982,9 @@ export const generatedCommands: GeneratedCommand[] = [
 				"required": true,
 				"schema": {
 					"type": "string",
-					"description": "Connected Instagram account or Facebook Page id. Immutable after creation."
+					"description": "Connected Instagram account, Facebook Page or TikTok business account id. Immutable after creation."
 				},
-				"description": "Connected Instagram account or Facebook Page id. Immutable after creation."
+				"description": "Connected Instagram account, Facebook Page or TikTok business account id. Immutable after creation."
 			},
 			{
 				"name": "profileId",
@@ -1019,9 +1019,9 @@ export const generatedCommands: GeneratedCommand[] = [
 						"story_reply"
 					],
 					"default": "comment",
-					"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
+					"description": "story_reply is Instagram only; on a Facebook Page or TikTok it returns 400 unsupported."
 				},
-				"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
+				"description": "story_reply is Instagram only; on a Facebook Page or TikTok it returns 400 unsupported."
 			},
 			{
 				"name": "platformPostId",
@@ -1121,9 +1121,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "string",
 					"minLength": 1,
 					"maxLength": 1000,
-					"description": "Required unless template is set. Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Ignored when a template is sent."
+					"description": "Instagram and Facebook: required unless template is set. Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Ignored when a template is sent. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Required unless template is set. Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Ignored when a template is sent."
+				"description": "Instagram and Facebook: required unless template is set. Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Ignored when a template is sent. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "dmMessageVariations",
@@ -1138,9 +1138,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					},
 					"maxItems": 5,
 					"default": [],
-					"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+					"description": "Same limits as dmMessage. Uniform random choice from the base message and variations. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+				"description": "Same limits as dmMessage. Uniform random choice from the base message and variations. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "buttons",
@@ -1177,9 +1177,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					},
 					"maxItems": 3,
 					"default": [],
-					"description": "Mutually exclusive with template."
+					"description": "Mutually exclusive with template. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Mutually exclusive with template."
+				"description": "Mutually exclusive with template. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "template",
@@ -1284,9 +1284,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "string",
 					"minLength": 1,
 					"maxLength": 1000,
-					"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+					"description": "Public reply under the comment. Supports {{first_name}}, {{name}} and {{username}}; an unknown value is left out. Instagram and Facebook: optional, sent only after a successful comment DM, ignored for story_reply. TikTok: required (cannot be cleared), and it is the only thing the automation sends."
 				},
-				"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+				"description": "Public reply under the comment. Supports {{first_name}}, {{name}} and {{username}}; an unknown value is left out. Instagram and Facebook: optional, sent only after a successful comment DM, ignored for story_reply. TikTok: required (cannot be cleared), and it is the only thing the automation sends."
 			},
 			{
 				"name": "commentReplyVariations",
@@ -1301,9 +1301,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					},
 					"maxItems": 5,
 					"default": [],
-					"description": "Uniform random choice independent of the DM."
+					"description": "Uniform random choice independent of the DM. Placeholders work as in commentReply."
 				},
-				"description": "Uniform random choice independent of the DM."
+				"description": "Uniform random choice independent of the DM. Placeholders work as in commentReply."
 			},
 			{
 				"name": "dmDelaySeconds",
@@ -1313,9 +1313,10 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "integer",
 					"minimum": 0,
 					"maximum": 86400,
-					"default": 0
+					"default": 0,
+					"description": "Not supported on TikTok (400 unsupported)."
 				},
-				"description": ""
+				"description": "Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "commentReplyDelaySeconds",
@@ -1326,9 +1327,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					"minimum": 0,
 					"maximum": 86400,
 					"default": 0,
-					"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+					"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds). On TikTok the reply waits this long plus a few seconds of jitter."
 				},
-				"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+				"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds). On TikTok the reply waits this long plus a few seconds of jitter."
 			},
 			{
 				"name": "isActive",
@@ -1391,9 +1392,9 @@ export const generatedCommands: GeneratedCommand[] = [
 							}
 						}
 					],
-					"description": "Instagram only: a Facebook automation returns 400 unsupported."
+					"description": "Instagram only: a Facebook automation returns 400 unsupported. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Instagram only: a Facebook automation returns 400 unsupported."
+				"description": "Instagram only: a Facebook automation returns 400 unsupported. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "openingDm",
@@ -1423,9 +1424,9 @@ export const generatedCommands: GeneratedCommand[] = [
 							}
 						}
 					],
-					"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers."
+					"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers."
+				"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "followGate",
@@ -1462,9 +1463,9 @@ export const generatedCommands: GeneratedCommand[] = [
 							}
 						}
 					],
-					"description": "Instagram only: a Facebook automation returns 400 unsupported."
+					"description": "Instagram only: a Facebook automation returns 400 unsupported. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Instagram only: a Facebook automation returns 400 unsupported."
+				"description": "Instagram only: a Facebook automation returns 400 unsupported. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "actions",
@@ -1488,6 +1489,35 @@ export const generatedCommands: GeneratedCommand[] = [
 					}
 				},
 				"description": "Extra actions on the matched comment. They run once, after the first DM attempt for the comment, never change the DM's outcome, and record their own outcome on the log as likeStatus and hideStatus."
+			},
+			{
+				"name": "repeatPolicy",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"type": "object",
+					"description": "How often one person can trigger this automation. once (default): each contact is answered at most once per automation and source; later comments are skipped as already_sent_to_contact. every_comment: every new matching comment is answered; with cooldownHours, a repeat from the same person inside that window is skipped as repeat_cooldown. On PATCH, null resets it to once.",
+					"properties": {
+						"mode": {
+							"type": "string",
+							"enum": [
+								"once",
+								"every_comment"
+							]
+						},
+						"cooldownHours": {
+							"type": "integer",
+							"minimum": 1,
+							"maximum": 720,
+							"description": "Only valid with mode every_comment. On PATCH, omit it from the object to clear it."
+						}
+					},
+					"required": [
+						"mode"
+					],
+					"additionalProperties": false
+				},
+				"description": "How often one person can trigger this automation. once (default): each contact is answered at most once per automation and source; later comments are skipped as already_sent_to_contact. every_comment: every new matching comment is answered; with cooldownHours, a repeat from the same person inside that window is skipped as repeat_cooldown. On PATCH, null resets it to once."
 			}
 		],
 		"bodyMode": "flat",
@@ -1516,7 +1546,8 @@ export const generatedCommands: GeneratedCommand[] = [
 			"audience",
 			"openingDm",
 			"followGate",
-			"actions"
+			"actions",
+			"repeatPolicy"
 		]
 	},
 	{
@@ -1524,7 +1555,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "delete-comment-automation",
 		"summary": "Delete a comment automation",
-		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Requires read_write. Limited to 60 deletes per hour per user. Deletes the automation and its logs in batches. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "DELETE",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1545,7 +1576,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "get-comment-automation",
 		"summary": "Get a comment automation",
-		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Returns the automation and 20 newest logs. Out-of-scope ids return 404 automationNotFound. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1566,7 +1597,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automation-logs",
 		"summary": "List comment automation logs",
-		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Newest logs first. total is capped at 5000 matching rows. Misses are not logged. Out-of-scope ids return 404 automationNotFound. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations/{automationId}/logs",
 		"positionals": [
@@ -1627,7 +1658,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "list-comment-automations",
 		"summary": "List comment automations",
-		"description": "Returns visible automations newest first, 100 per page by default. Use limit and skip to page through more. Reads use the plan per-minute limit. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Returns visible automations newest first, 100 per page by default. Use limit and skip to page through more. Reads use the plan per-minute limit. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "GET",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1682,7 +1713,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "update-comment-automation",
 		"summary": "Update a comment automation",
-		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "PATCH",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -1728,9 +1759,9 @@ export const generatedCommands: GeneratedCommand[] = [
 						"story_reply"
 					],
 					"default": "comment",
-					"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
+					"description": "story_reply is Instagram only; on a Facebook Page or TikTok it returns 400 unsupported."
 				},
-				"description": "story_reply is Instagram only; a Facebook automation returns 400 unsupported."
+				"description": "story_reply is Instagram only; on a Facebook Page or TikTok it returns 400 unsupported."
 			},
 			{
 				"name": "platformPostId",
@@ -1830,9 +1861,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "string",
 					"minLength": 1,
 					"maxLength": 1000,
-					"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+					"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters."
+				"description": "Plain text: at most 1000 UTF-8 bytes. With buttons: at most 640 characters. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "dmMessageVariations",
@@ -1847,9 +1878,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					},
 					"maxItems": 5,
 					"default": [],
-					"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+					"description": "Same limits as dmMessage. Uniform random choice from the base message and variations. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Same limits as dmMessage. Uniform random choice from the base message and variations."
+				"description": "Same limits as dmMessage. Uniform random choice from the base message and variations. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "buttons",
@@ -1886,9 +1917,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					},
 					"maxItems": 3,
 					"default": [],
-					"description": "Mutually exclusive with template. Pass [] to clear."
+					"description": "Mutually exclusive with template. Pass [] to clear. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Mutually exclusive with template. Pass [] to clear."
+				"description": "Mutually exclusive with template. Pass [] to clear. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "template",
@@ -1989,9 +2020,9 @@ export const generatedCommands: GeneratedCommand[] = [
 							"type": "null"
 						}
 					],
-					"description": "Send null to remove the card and go back to dmMessage."
+					"description": "Send null to remove the card and go back to dmMessage. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Send null to remove the card and go back to dmMessage."
+				"description": "Send null to remove the card and go back to dmMessage. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "commentReply",
@@ -2001,9 +2032,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "string",
 					"minLength": 1,
 					"maxLength": 1000,
-					"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+					"description": "Public reply under the comment. Supports {{first_name}}, {{name}} and {{username}}; an unknown value is left out. Instagram and Facebook: optional, sent only after a successful comment DM, ignored for story_reply. TikTok: required (cannot be cleared), and it is the only thing the automation sends."
 				},
-				"description": "Optional public reply, sent only after successful comment DM. Ignored for story_reply."
+				"description": "Public reply under the comment. Supports {{first_name}}, {{name}} and {{username}}; an unknown value is left out. Instagram and Facebook: optional, sent only after a successful comment DM, ignored for story_reply. TikTok: required (cannot be cleared), and it is the only thing the automation sends."
 			},
 			{
 				"name": "commentReplyVariations",
@@ -2018,9 +2049,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					},
 					"maxItems": 5,
 					"default": [],
-					"description": "Uniform random choice independent of the DM."
+					"description": "Uniform random choice independent of the DM. Placeholders work as in commentReply."
 				},
-				"description": "Uniform random choice independent of the DM."
+				"description": "Uniform random choice independent of the DM. Placeholders work as in commentReply."
 			},
 			{
 				"name": "dmDelaySeconds",
@@ -2030,9 +2061,10 @@ export const generatedCommands: GeneratedCommand[] = [
 					"type": "integer",
 					"minimum": 0,
 					"maximum": 86400,
-					"default": 0
+					"default": 0,
+					"description": "Not supported on TikTok (400 unsupported)."
 				},
-				"description": ""
+				"description": "Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "commentReplyDelaySeconds",
@@ -2043,9 +2075,9 @@ export const generatedCommands: GeneratedCommand[] = [
 					"minimum": 0,
 					"maximum": 86400,
 					"default": 0,
-					"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+					"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds). On TikTok the reply waits this long plus a few seconds of jitter."
 				},
-				"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds)."
+				"description": "Effective delay is max(dmDelaySeconds, commentReplyDelaySeconds). On TikTok the reply waits this long plus a few seconds of jitter."
 			},
 			{
 				"name": "isActive",
@@ -2109,9 +2141,9 @@ export const generatedCommands: GeneratedCommand[] = [
 						}
 					],
 					"nullable": true,
-					"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
+					"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
+				"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "openingDm",
@@ -2142,9 +2174,9 @@ export const generatedCommands: GeneratedCommand[] = [
 						}
 					],
 					"nullable": true,
-					"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults."
+					"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults."
+				"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "followGate",
@@ -2182,9 +2214,9 @@ export const generatedCommands: GeneratedCommand[] = [
 						}
 					],
 					"nullable": true,
-					"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
+					"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it."
+				"description": "Instagram only: a Facebook automation returns 400 unsupported. On PATCH, null clears it. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "actions",
@@ -2214,6 +2246,41 @@ export const generatedCommands: GeneratedCommand[] = [
 					"description": "Replaces the stored actions. Send null to turn both off."
 				},
 				"description": "Replaces the stored actions. Send null to turn both off."
+			},
+			{
+				"name": "repeatPolicy",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"description": "How often one person can trigger this automation. once (default): each contact is answered at most once per automation and source; later comments are skipped as already_sent_to_contact. every_comment: every new matching comment is answered; with cooldownHours, a repeat from the same person inside that window is skipped as repeat_cooldown. On PATCH, null resets it to once.",
+							"properties": {
+								"mode": {
+									"type": "string",
+									"enum": [
+										"once",
+										"every_comment"
+									]
+								},
+								"cooldownHours": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 720,
+									"description": "Only valid with mode every_comment. On PATCH, omit it from the object to clear it."
+								}
+							},
+							"required": [
+								"mode"
+							],
+							"additionalProperties": false
+						}
+					],
+					"nullable": true,
+					"description": "On PATCH, null resets it to once."
+				},
+				"description": "On PATCH, null resets it to once."
 			}
 		],
 		"bodyMode": "flat",
@@ -2241,7 +2308,8 @@ export const generatedCommands: GeneratedCommand[] = [
 			"audience",
 			"openingDm",
 			"followGate",
-			"actions"
+			"actions",
+			"repeatPolicy"
 		]
 	},
 	{
