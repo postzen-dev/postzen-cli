@@ -971,7 +971,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "create-comment-automation",
 		"summary": "Create a comment automation",
-		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. DMs on a run go in this order: Opening DM (`openingDm`), follow request (`followGate`), email ask (`emailCapture`), link DM, follow-up DM (`followUp`). emailCapture and followUp are paid-plan features (403 planRequired on Free). One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "POST",
 		"pathTemplate": "/v1/comment-automations",
 		"positionals": [],
@@ -1350,9 +1350,10 @@ export const generatedCommands: GeneratedCommand[] = [
 					"enum": [
 						false
 					],
-					"default": false
+					"default": false,
+					"description": "Only false is accepted; true returns 400 unsupported. Click tracking is switched on by `followUp`."
 				},
-				"description": ""
+				"description": "Only false is accepted; true returns 400 unsupported. Click tracking is switched on by `followUp`."
 			},
 			{
 				"name": "audience",
@@ -1405,7 +1406,7 @@ export const generatedCommands: GeneratedCommand[] = [
 						{
 							"type": "object",
 							"additionalProperties": false,
-							"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule: when `audience` filters by followers and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
+							"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule, and for `emailCapture` and `followUp` on a `comment` automation: when one of these is set and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
 							"properties": {
 								"message": {
 									"type": "string",
@@ -1424,9 +1425,73 @@ export const generatedCommands: GeneratedCommand[] = [
 							}
 						}
 					],
-					"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers. Not supported on TikTok (400 unsupported)."
+					"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers, or `emailCapture` or `followUp` is set on a `comment` automation. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers. Not supported on TikTok (400 unsupported)."
+				"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers, or `emailCapture` or `followUp` is set on a `comment` automation. Not supported on TikTok (400 unsupported)."
+			},
+			{
+				"name": "emailCapture",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "A DM that asks for the person's email before the link DM. The address they reply with is saved to the log's `collectedEmail`, and to the contact when the contact has no email yet. A contact that already has an email is not asked. If the reply is not an email address, `retryMessage` is sent once; if the next reply is still not one, the link DM goes out anyway and the log gets `emailSkipped: true`. On a `comment` automation it turns the Opening DM on (the defaults when `openingDm` is not set): after the private reply, Meta allows more DMs only once the person has messaged the account. Instagram and Facebook only. Paid plans only: on Free, create and update return 403 planRequired.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "What's the best email to send it to? 📩",
+									"description": "The question. Trimmed. Empty or omitted uses the default."
+								},
+								"retryMessage": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Hmm, that doesn't look like an email address. Could you send it again?",
+									"description": "Sent once when the reply is not an email address. Trimmed. Empty or omitted uses the default."
+								}
+							}
+						}
+					],
+					"description": "Send an object (even `{}` for the defaults) to turn the email ask on. Omit to leave it off. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+				},
+				"description": "Send an object (even `{}` for the defaults) to turn the email ask on. Omit to leave it off. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+			},
+			{
+				"name": "followUp",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "One more DM with the same link buttons, sent `delayMinutes` after the link DM when the person has not tapped any of its link buttons. To see taps, link buttons go through `https://api.postzen.dev/l/...`, which redirects to the button URL; the plain-text fallback keeps the original URLs. Needs at least one link button in `buttons` or in a `template` element (otherwise 400 validation). Sent at most once, only inside Meta's 24-hour messaging window, and never when Meta dropped the buttons from the link DM (`buttonsDropped`). The log records the outcome in `followUpStatus`. On a `comment` automation it turns the Opening DM on (the defaults when `openingDm` is not set). Instagram and Facebook only. Paid plans only: on Free, create and update return 403 planRequired.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Still want this? The link is right here 👇",
+									"description": "Text above the buttons. Trimmed. Empty or omitted uses the default."
+								},
+								"delayMinutes": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 1380,
+									"default": 60,
+									"description": "Minutes to wait after the link DM. At most 1380 (23 hours), to stay inside Meta's 24-hour window."
+								}
+							}
+						}
+					],
+					"description": "Send an object (even `{}` for the defaults) to turn the follow-up DM on. Omit to leave it off. Needs at least one link button in `buttons` or `template`. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+				},
+				"description": "Send an object (even `{}` for the defaults) to turn the follow-up DM on. Omit to leave it off. Needs at least one link button in `buttons` or `template`. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "followGate",
@@ -1545,6 +1610,8 @@ export const generatedCommands: GeneratedCommand[] = [
 			"linkTracking",
 			"audience",
 			"openingDm",
+			"emailCapture",
+			"followUp",
 			"followGate",
 			"actions",
 			"repeatPolicy"
@@ -1713,7 +1780,7 @@ export const generatedCommands: GeneratedCommand[] = [
 		"group": "comment-automations",
 		"action": "update-comment-automation",
 		"summary": "Update a comment automation",
-		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+		"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. DMs on a run go in this order: Opening DM (`openingDm`), follow request (`followGate`), email ask (`emailCapture`), link DM, follow-up DM (`followUp`). emailCapture and followUp are paid-plan features (403 planRequired on Free). Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 		"method": "PATCH",
 		"pathTemplate": "/v1/comment-automations/{automationId}",
 		"positionals": [
@@ -2098,9 +2165,10 @@ export const generatedCommands: GeneratedCommand[] = [
 					"enum": [
 						false
 					],
-					"default": false
+					"default": false,
+					"description": "Only false is accepted; true returns 400 unsupported. Click tracking is switched on by `followUp`."
 				},
-				"description": ""
+				"description": "Only false is accepted; true returns 400 unsupported. Click tracking is switched on by `followUp`."
 			},
 			{
 				"name": "audience",
@@ -2154,7 +2222,7 @@ export const generatedCommands: GeneratedCommand[] = [
 						{
 							"type": "object",
 							"additionalProperties": false,
-							"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule: when `audience` filters by followers and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
+							"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule, and for `emailCapture` and `followUp` on a `comment` automation: when one of these is set and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
 							"properties": {
 								"message": {
 									"type": "string",
@@ -2174,9 +2242,75 @@ export const generatedCommands: GeneratedCommand[] = [
 						}
 					],
 					"nullable": true,
-					"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults. Not supported on TikTok (400 unsupported)."
+					"description": "Send null to turn the Opening DM off. A follower-based `audience`, or `emailCapture` or `followUp` on a `comment` automation, still sends the defaults. Not supported on TikTok (400 unsupported)."
 				},
-				"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults. Not supported on TikTok (400 unsupported)."
+				"description": "Send null to turn the Opening DM off. A follower-based `audience`, or `emailCapture` or `followUp` on a `comment` automation, still sends the defaults. Not supported on TikTok (400 unsupported)."
+			},
+			{
+				"name": "emailCapture",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "A DM that asks for the person's email before the link DM. The address they reply with is saved to the log's `collectedEmail`, and to the contact when the contact has no email yet. A contact that already has an email is not asked. If the reply is not an email address, `retryMessage` is sent once; if the next reply is still not one, the link DM goes out anyway and the log gets `emailSkipped: true`. On a `comment` automation it turns the Opening DM on (the defaults when `openingDm` is not set): after the private reply, Meta allows more DMs only once the person has messaged the account. Instagram and Facebook only. Paid plans only: on Free, create and update return 403 planRequired.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "What's the best email to send it to? 📩",
+									"description": "The question. Trimmed. Empty or omitted uses the default."
+								},
+								"retryMessage": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Hmm, that doesn't look like an email address. Could you send it again?",
+									"description": "Sent once when the reply is not an email address. Trimmed. Empty or omitted uses the default."
+								}
+							}
+						}
+					],
+					"nullable": true,
+					"description": "Send an object to turn the email ask on or change it. Send null to turn it off. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+				},
+				"description": "Send an object to turn the email ask on or change it. Send null to turn it off. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+			},
+			{
+				"name": "followUp",
+				"in": "body",
+				"required": false,
+				"schema": {
+					"allOf": [
+						{
+							"type": "object",
+							"additionalProperties": false,
+							"description": "One more DM with the same link buttons, sent `delayMinutes` after the link DM when the person has not tapped any of its link buttons. To see taps, link buttons go through `https://api.postzen.dev/l/...`, which redirects to the button URL; the plain-text fallback keeps the original URLs. Needs at least one link button in `buttons` or in a `template` element (otherwise 400 validation). Sent at most once, only inside Meta's 24-hour messaging window, and never when Meta dropped the buttons from the link DM (`buttonsDropped`). The log records the outcome in `followUpStatus`. On a `comment` automation it turns the Opening DM on (the defaults when `openingDm` is not set). Instagram and Facebook only. Paid plans only: on Free, create and update return 403 planRequired.",
+							"properties": {
+								"message": {
+									"type": "string",
+									"minLength": 1,
+									"maxLength": 640,
+									"default": "Still want this? The link is right here 👇",
+									"description": "Text above the buttons. Trimmed. Empty or omitted uses the default."
+								},
+								"delayMinutes": {
+									"type": "integer",
+									"minimum": 1,
+									"maximum": 1380,
+									"default": 60,
+									"description": "Minutes to wait after the link DM. At most 1380 (23 hours), to stay inside Meta's 24-hour window."
+								}
+							}
+						}
+					],
+					"nullable": true,
+					"description": "Send an object to turn the follow-up DM on or change it. Send null to turn it off. While it is on, the automation must keep at least one link button. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+				},
+				"description": "Send an object to turn the follow-up DM on or change it. Send null to turn it off. While it is on, the automation must keep at least one link button. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
 			},
 			{
 				"name": "followGate",
@@ -2307,6 +2441,8 @@ export const generatedCommands: GeneratedCommand[] = [
 			"linkTracking",
 			"audience",
 			"openingDm",
+			"emailCapture",
+			"followUp",
 			"followGate",
 			"actions",
 			"repeatPolicy"
@@ -7145,6 +7281,7 @@ export const generatedCommands: GeneratedCommand[] = [
 							"contact.tag_added",
 							"contact.tag_removed",
 							"contact.field_changed",
+							"contact.email_captured",
 							"webhook.test"
 						],
 						"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."
@@ -7349,6 +7486,7 @@ export const generatedCommands: GeneratedCommand[] = [
 						"contact.tag_added",
 						"contact.tag_removed",
 						"contact.field_changed",
+						"contact.email_captured",
 						"webhook.test"
 					],
 					"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."
@@ -7529,6 +7667,7 @@ export const generatedCommands: GeneratedCommand[] = [
 							"contact.tag_added",
 							"contact.tag_removed",
 							"contact.field_changed",
+							"contact.email_captured",
 							"webhook.test"
 						],
 						"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."

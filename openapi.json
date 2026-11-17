@@ -6774,7 +6774,7 @@
 				],
 				"operationId": "createCommentAutomation",
 				"summary": "Create a comment automation",
-				"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+				"description": "Requires read_write. Limited to 60 creates per hour per user. The number of automations a user can hold depends on the plan (Free 100, Starter 500, Pro 1,000, Scale 2,000), with at most 500 per connected account on every plan; paused automations count, and automations on a disconnected account do not count until it reconnects. Per-post automations take priority over account-wide automations. DMs on a run go in this order: Opening DM (`openingDm`), follow request (`followGate`), email ask (`emailCapture`), link DM, follow-up DM (`followUp`). emailCapture and followUp are paid-plan features (403 planRequired on Free). One matching automation wins, and each contact receives at most one pending or successful send per automation and source. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -6803,7 +6803,18 @@
 						"$ref": "#/components/responses/Unauthorized"
 					},
 					"403": {
-						"$ref": "#/components/responses/Forbidden"
+						"description": "The API key is read-only, the account is outside its profile access (`forbidden`), the connection is missing a scope the automation needs (`platformCapabilityMissing`), or `emailCapture` or `followUp` is set on the Free plan (`planRequired`).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								},
+								"example": {
+									"error": "The email ask and the follow-up DM are available on paid plans. Upgrade at https://app.postzen.dev/billing",
+									"code": "planRequired"
+								}
+							}
+						}
 					},
 					"404": {
 						"$ref": "#/components/responses/NotFound"
@@ -6882,7 +6893,7 @@
 				],
 				"operationId": "updateCommentAutomation",
 				"summary": "Update a comment automation",
-				"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
+				"description": "Requires read_write. Limited to 120 updates per hour per user. Inactive automations are not evaluated; pending deliveries are skipped when disabled. DMs on a run go in this order: Opening DM (`openingDm`), follow request (`followGate`), email ask (`emailCapture`), link DM, follow-up DM (`followUp`). emailCapture and followUp are paid-plan features (403 planRequired on Free). Instagram accounts, Facebook Pages and TikTok business accounts (public reply only). A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set).",
 				"parameters": [
 					{
 						"name": "automationId",
@@ -6921,7 +6932,18 @@
 						"$ref": "#/components/responses/Unauthorized"
 					},
 					"403": {
-						"$ref": "#/components/responses/Forbidden"
+						"description": "The API key is read-only, the account is outside its profile access (`forbidden`), the connection is missing a scope the automation needs (`platformCapabilityMissing`), or the automation would keep `emailCapture` or `followUp` on the Free plan (`planRequired`). On Free, a PATCH that only turns them off, or only sets `isActive` to false, is still accepted.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ErrorResponse"
+								},
+								"example": {
+									"error": "The email ask and the follow-up DM are available on paid plans. Upgrade at https://app.postzen.dev/billing",
+									"code": "planRequired"
+								}
+							}
+						}
 					},
 					"404": {
 						"$ref": "#/components/responses/NotFound"
@@ -8662,6 +8684,31 @@
 				}
 			}
 		},
+		"contactEmailEvents": {
+			"post": {
+				"tags": [
+					"Webhook Events"
+				],
+				"operationId": "contactEmailEvents",
+				"summary": "Contact email events",
+				"description": "- `contact.email_captured`: A comment automation's email ask collected an address from a contact's reply; sent once per captured address, with `savedToContact: false` when the contact already had an email or another contact in the profile holds the address.\n\nDelivered as a `POST` to every active endpoint that subscribes to the event and whose profile access covers it. Delivery is at least once and events are not ordered, so deduplicate by `id`.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/WebhookContactEmailCapturedEvent"
+							}
+						}
+					}
+				},
+				"responses": {
+					"2XX": {
+						"description": "Acknowledges the delivery. Any other status, or no response within 10 seconds, schedules a retry."
+					}
+				}
+			}
+		},
 		"testEvents": {
 			"post": {
 				"tags": [
@@ -8854,6 +8901,8 @@
 					"updatedAt",
 					"audience",
 					"openingDm",
+					"emailCapture",
+					"followUp",
 					"actions",
 					"repeatPolicy",
 					"activatedAt"
@@ -8997,10 +9046,8 @@
 					},
 					"linkTracking": {
 						"type": "boolean",
-						"enum": [
-							false
-						],
-						"default": false
+						"default": false,
+						"description": "True when `followUp` is set: the link buttons go through a PostZen redirect so taps can be seen. Read-only; `followUp` switches it on."
 					},
 					"id": {
 						"type": "string"
@@ -9061,7 +9108,25 @@
 							}
 						],
 						"nullable": true,
-						"description": "The Opening DM that actually goes out: the stored one, the defaults when `audience` filters by followers, or null when off. Not supported on TikTok (400 unsupported)."
+						"description": "The Opening DM that actually goes out: the stored one, the defaults when `audience` filters by followers or when `emailCapture` or `followUp` is set on a `comment` automation, or null when off. Not supported on TikTok (400 unsupported)."
+					},
+					"emailCapture": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CommentAutomationEmailCapture"
+							}
+						],
+						"nullable": true,
+						"description": "The email ask, or null when off. Not supported on TikTok (400 unsupported)."
+					},
+					"followUp": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CommentAutomationFollowUp"
+							}
+						],
+						"nullable": true,
+						"description": "The follow-up DM, or null when off. Not supported on TikTok (400 unsupported)."
 					},
 					"followGate": {
 						"$ref": "#/components/schemas/CommentAutomationFollowGate",
@@ -9278,7 +9343,8 @@
 						"enum": [
 							false
 						],
-						"default": false
+						"default": false,
+						"description": "Only false is accepted; true returns 400 unsupported. Click tracking is switched on by `followUp`."
 					},
 					"audience": {
 						"allOf": [
@@ -9294,7 +9360,23 @@
 								"$ref": "#/components/schemas/CommentAutomationOpeningDm"
 							}
 						],
-						"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers. Not supported on TikTok (400 unsupported)."
+						"description": "Send an object (even `{}` for the defaults) to turn the Opening DM on. Omit to leave it off, unless `audience` filters by followers, or `emailCapture` or `followUp` is set on a `comment` automation. Not supported on TikTok (400 unsupported)."
+					},
+					"emailCapture": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CommentAutomationEmailCapture"
+							}
+						],
+						"description": "Send an object (even `{}` for the defaults) to turn the email ask on. Omit to leave it off. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+					},
+					"followUp": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CommentAutomationFollowUp"
+							}
+						],
+						"description": "Send an object (even `{}` for the defaults) to turn the follow-up DM on. Omit to leave it off. Needs at least one link button in `buttons` or `template`. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
 					},
 					"followGate": {
 						"allOf": [
@@ -9312,7 +9394,7 @@
 					}
 				},
 				"additionalProperties": false,
-				"description": "Maximum 100 automations per user; at most one active per-post automation for each account and post reference. alsoMatchInDms, clickTag and linkTracking:true return 400 unsupported. On a Facebook Page, trigger story_reply, audience and followGate also return 400 unsupported; actions.likeComment is Facebook only. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set). TikTok business accounts (connected through the TikTok Business app with comment access): the automation only posts a PUBLIC reply under the matching comment, because TikTok has no private reply to a comment. On TikTok, commentReply is required; trigger must be comment; dmMessage, dmMessageVariations, buttons, template, audience, followGate, openingDm and dmDelaySeconds return 400 unsupported (on PATCH, null or an empty array is accepted as a no-op). Replies are capped at 100 per account per hour; over the cap a reply waits and is skipped as reply_rate_limited after 6 hours. A TikTok account connected without comment access returns 400 validation: reconnect it to enable comments."
+				"description": "Maximum 100 automations per user; at most one active per-post automation for each account and post reference. alsoMatchInDms, clickTag and linkTracking:true return 400 unsupported. On a Facebook Page, trigger story_reply, audience and followGate also return 400 unsupported; actions.likeComment is Facebook only. Instagram accounts and Facebook Pages. A comment permits one private reply ever, within 7 days. Story replies (Instagram only) use normal DMs inside the 24-hour messaging window. Buttons and image cards (template) fall back to text with title and URL lines if Meta rejects the template. Reconnect the account on 403 platformCapabilityMissing to grant instagram_business_manage_comments and instagram_business_manage_messages on Instagram, or pages_messaging and pages_manage_metadata on a Facebook Page (plus pages_manage_engagement when commentReply is set). TikTok business accounts (connected through the TikTok Business app with comment access): the automation only posts a PUBLIC reply under the matching comment, because TikTok has no private reply to a comment. On TikTok, commentReply is required; trigger must be comment; dmMessage, dmMessageVariations, buttons, template, audience, followGate, openingDm, emailCapture, followUp and dmDelaySeconds return 400 unsupported (on PATCH, null or an empty array is accepted as a no-op). Replies are capped at 100 per account per hour; over the cap a reply waits and is skipped as reply_rate_limited after 6 hours. A TikTok account connected without comment access returns 400 validation: reconnect it to enable comments."
 			},
 			"CommentAutomationUpdateRequest": {
 				"type": "object",
@@ -9461,7 +9543,8 @@
 						"enum": [
 							false
 						],
-						"default": false
+						"default": false,
+						"description": "Only false is accepted; true returns 400 unsupported. Click tracking is switched on by `followUp`."
 					},
 					"audience": {
 						"allOf": [
@@ -9479,7 +9562,25 @@
 							}
 						],
 						"nullable": true,
-						"description": "Send null to turn the Opening DM off. A follower-based `audience` still sends the defaults. Not supported on TikTok (400 unsupported)."
+						"description": "Send null to turn the Opening DM off. A follower-based `audience`, or `emailCapture` or `followUp` on a `comment` automation, still sends the defaults. Not supported on TikTok (400 unsupported)."
+					},
+					"emailCapture": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CommentAutomationEmailCapture"
+							}
+						],
+						"nullable": true,
+						"description": "Send an object to turn the email ask on or change it. Send null to turn it off. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
+					},
+					"followUp": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CommentAutomationFollowUp"
+							}
+						],
+						"nullable": true,
+						"description": "Send an object to turn the follow-up DM on or change it. Send null to turn it off. While it is on, the automation must keep at least one link button. Paid plans only: 403 planRequired on Free. Not supported on TikTok (400 unsupported)."
 					},
 					"followGate": {
 						"allOf": [
@@ -9510,7 +9611,7 @@
 					}
 				},
 				"additionalProperties": false,
-				"description": "Partial update. accountId is immutable. Enabling checks capabilities and duplicate per-post limits. Unsupported fields are rejected as on create. TikTok business accounts (connected through the TikTok Business app with comment access): the automation only posts a PUBLIC reply under the matching comment, because TikTok has no private reply to a comment. On TikTok, commentReply is required; trigger must be comment; dmMessage, dmMessageVariations, buttons, template, audience, followGate, openingDm and dmDelaySeconds return 400 unsupported (on PATCH, null or an empty array is accepted as a no-op). Replies are capped at 100 per account per hour; over the cap a reply waits and is skipped as reply_rate_limited after 6 hours. A TikTok account connected without comment access returns 400 validation: reconnect it to enable comments."
+				"description": "Partial update. accountId is immutable. Enabling checks capabilities and duplicate per-post limits. Unsupported fields are rejected as on create. TikTok business accounts (connected through the TikTok Business app with comment access): the automation only posts a PUBLIC reply under the matching comment, because TikTok has no private reply to a comment. On TikTok, commentReply is required; trigger must be comment; dmMessage, dmMessageVariations, buttons, template, audience, followGate, openingDm, emailCapture, followUp and dmDelaySeconds return 400 unsupported (on PATCH, null or an empty array is accepted as a no-op). Replies are capped at 100 per account per hour; over the cap a reply waits and is skipped as reply_rate_limited after 6 hours. A TikTok account connected without comment access returns 400 validation: reconnect it to enable comments."
 			},
 			"CommentAutomationLog": {
 				"type": "object",
@@ -9586,7 +9687,7 @@
 							"skipped",
 							"gated"
 						],
-						"description": "gated: a button DM (Opening DM or follow request) went out and we are waiting for the tap; it flips to sent or skipped when they tap. A tap from someone who still does not follow keeps it gated for another tap."
+						"description": "gated: a DM went out and we are waiting for the person: a tap on a button DM (Opening DM or follow request), or a reply to the email ask (`gateStage` email). It flips to sent or skipped when they tap or reply. A tap from someone who still does not follow keeps it gated for another tap. A first reply that is not an email address gets the retry message and keeps it gated."
 					},
 					"buttonsDropped": {
 						"type": "boolean"
@@ -9616,9 +9717,10 @@
 						"type": "string",
 						"enum": [
 							"opening",
-							"follow"
+							"follow",
+							"email"
 						],
-						"description": "Which button DM a gated log is waiting on: `opening` (the Opening DM) or `follow` (the follow request)."
+						"description": "What a gated log is waiting on: `opening` (a tap on the Opening DM), `follow` (a tap on the follow request) or `email` (a reply to the email ask)."
 					},
 					"gateMessageId": {
 						"type": "string"
@@ -9692,6 +9794,75 @@
 					"commentReplyCommentId": {
 						"type": "string",
 						"description": "The id of the posted public reply."
+					},
+					"collectedEmail": {
+						"type": "string",
+						"description": "The email address the person sent in reply to the email ask, lowercased."
+					},
+					"emailAttempts": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 2,
+						"description": "Replies to the email ask that were not an email address."
+					},
+					"emailSkipped": {
+						"type": "boolean",
+						"description": "True when the link DM went out without an email, because the reply after the retry message was still not an email address."
+					},
+					"emailAskedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the email ask was sent."
+					},
+					"emailRepliedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the latest reply to the email ask arrived."
+					},
+					"linkClickedAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the person first tapped a tracked link button. Only automations with `followUp` track taps."
+					},
+					"followUpStatus": {
+						"type": "string",
+						"enum": [
+							"pending",
+							"sent",
+							"skipped",
+							"failed"
+						],
+						"description": "Outcome of the follow-up DM. Absent when no follow-up was scheduled."
+					},
+					"followUpDueAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the follow-up DM is due, while `followUpStatus` is pending."
+					},
+					"followUpSkipReason": {
+						"type": "string",
+						"enum": [
+							"link_clicked",
+							"window_closed",
+							"automation_inactive",
+							"follow_up_removed",
+							"contact_blocked",
+							"contact_unsubscribed"
+						],
+						"description": "Why the follow-up DM was skipped. window_closed: Meta's 24-hour messaging window had closed. follow_up_removed: `followUp` was turned off before it was due."
+					},
+					"followUpError": {
+						"type": "string",
+						"description": "Why sending the follow-up DM failed."
+					},
+					"followUpMessageId": {
+						"type": "string",
+						"description": "The id of the sent follow-up DM."
+					},
+					"followUpSentAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the follow-up DM was sent."
 					}
 				}
 			},
@@ -14465,6 +14636,7 @@
 					"contact.tag_added",
 					"contact.tag_removed",
 					"contact.field_changed",
+					"contact.email_captured",
 					"webhook.test"
 				],
 				"description": "Webhook event type. See the Webhook Events section for each event's trigger and payload. Receivers should tolerate additional event types in future API versions."
@@ -15305,6 +15477,58 @@
 					}
 				}
 			},
+			"WebhookContactEmailCapturedEventData": {
+				"type": "object",
+				"required": [
+					"contact",
+					"email",
+					"savedToContact",
+					"source",
+					"automationId",
+					"logId",
+					"accountId",
+					"platform"
+				],
+				"properties": {
+					"contact": {
+						"$ref": "#/components/schemas/WebhookContactEventContact"
+					},
+					"email": {
+						"type": "string",
+						"description": "The captured address, lowercased."
+					},
+					"savedToContact": {
+						"type": "boolean",
+						"description": "True when the address was written to the contact's email; false when the contact already had an email or another contact in the profile holds this address."
+					},
+					"source": {
+						"type": "string",
+						"enum": [
+							"comment_automation"
+						],
+						"description": "What collected the address."
+					},
+					"automationId": {
+						"type": "string",
+						"description": "The comment automation whose email ask collected the address."
+					},
+					"logId": {
+						"type": "string",
+						"description": "The automation log entry for this person's run."
+					},
+					"accountId": {
+						"type": "string",
+						"description": "PostZen account the automation runs on."
+					},
+					"platform": {
+						"type": "string",
+						"enum": [
+							"instagram",
+							"facebook"
+						]
+					}
+				}
+			},
 			"WebhookTestEventData": {
 				"type": "object",
 				"required": [
@@ -15727,6 +15951,42 @@
 					},
 					"data": {
 						"$ref": "#/components/schemas/WebhookContactFieldEventData"
+					}
+				}
+			},
+			"WebhookContactEmailCapturedEvent": {
+				"type": "object",
+				"description": "Envelope for `contact.email_captured`.",
+				"required": [
+					"id",
+					"type",
+					"apiVersion",
+					"createdAt",
+					"data"
+				],
+				"properties": {
+					"id": {
+						"type": "string",
+						"description": "Event id (`evt_…`). Stable across automatic retries and manual redeliveries; deduplicate on it."
+					},
+					"type": {
+						"type": "string",
+						"enum": [
+							"contact.email_captured"
+						]
+					},
+					"apiVersion": {
+						"type": "string",
+						"example": "2026-08-06",
+						"description": "Payload version."
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time",
+						"description": "When the event was created."
+					},
+					"data": {
+						"$ref": "#/components/schemas/WebhookContactEmailCapturedEventData"
 					}
 				}
 			},
@@ -16651,7 +16911,7 @@
 			"CommentAutomationOpeningDm": {
 				"type": "object",
 				"additionalProperties": false,
-				"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule: when `audience` filters by followers and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
+				"description": "A first DM with a button, sent as the private reply to the comment. Tapping the button counts as the person messaging you, which opens the 24-hour messaging window and lets Instagram reveal whether they follow you. Required for any `audience` rule, and for `emailCapture` and `followUp` on a `comment` automation: when one of these is set and no `openingDm` is set, the defaults are used. Ignored for story replies, which already count as a message.",
 				"properties": {
 					"message": {
 						"type": "string",
@@ -16666,6 +16926,48 @@
 						"maxLength": 20,
 						"default": "Send me the link",
 						"description": "Trimmed. Empty or omitted uses the default."
+					}
+				}
+			},
+			"CommentAutomationEmailCapture": {
+				"type": "object",
+				"additionalProperties": false,
+				"description": "A DM that asks for the person's email before the link DM. The address they reply with is saved to the log's `collectedEmail`, and to the contact when the contact has no email yet. A contact that already has an email is not asked. If the reply is not an email address, `retryMessage` is sent once; if the next reply is still not one, the link DM goes out anyway and the log gets `emailSkipped: true`. On a `comment` automation it turns the Opening DM on (the defaults when `openingDm` is not set): after the private reply, Meta allows more DMs only once the person has messaged the account. Instagram and Facebook only. Paid plans only: on Free, create and update return 403 planRequired.",
+				"properties": {
+					"message": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 640,
+						"default": "What's the best email to send it to? 📩",
+						"description": "The question. Trimmed. Empty or omitted uses the default."
+					},
+					"retryMessage": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 640,
+						"default": "Hmm, that doesn't look like an email address. Could you send it again?",
+						"description": "Sent once when the reply is not an email address. Trimmed. Empty or omitted uses the default."
+					}
+				}
+			},
+			"CommentAutomationFollowUp": {
+				"type": "object",
+				"additionalProperties": false,
+				"description": "One more DM with the same link buttons, sent `delayMinutes` after the link DM when the person has not tapped any of its link buttons. To see taps, link buttons go through `https://api.postzen.dev/l/...`, which redirects to the button URL; the plain-text fallback keeps the original URLs. Needs at least one link button in `buttons` or in a `template` element (otherwise 400 validation). Sent at most once, only inside Meta's 24-hour messaging window, and never when Meta dropped the buttons from the link DM (`buttonsDropped`). The log records the outcome in `followUpStatus`. On a `comment` automation it turns the Opening DM on (the defaults when `openingDm` is not set). Instagram and Facebook only. Paid plans only: on Free, create and update return 403 planRequired.",
+				"properties": {
+					"message": {
+						"type": "string",
+						"minLength": 1,
+						"maxLength": 640,
+						"default": "Still want this? The link is right here 👇",
+						"description": "Text above the buttons. Trimmed. Empty or omitted uses the default."
+					},
+					"delayMinutes": {
+						"type": "integer",
+						"minimum": 1,
+						"maximum": 1380,
+						"default": 60,
+						"description": "Minutes to wait after the link DM. At most 1380 (23 hours), to stay inside Meta's 24-hour window."
 					}
 				}
 			},
